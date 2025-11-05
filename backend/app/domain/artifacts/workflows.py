@@ -84,15 +84,15 @@ def create_artifact_from_text(
     artifact_chunks = []
     artifact_id = ArtifactId(uuid.uuid4())
     
-    for i, chunk_text in enumerate(text_chunks):
+    for i, text_chunk in enumerate(text_chunks):
         chunk_id = ChunkId(uuid.uuid4())
-        embedding_vector = embedding_generator.generate(chunk_text)
+        embedding_vector = embedding_generator.generate(text_chunk)
         embedding = Embedding(vector=embedding_vector)
         
         chunk = ArtifactChunk(
             id=chunk_id,
             artifact_id=artifact_id,
-            content=chunk_text,
+            content=text_chunk,
             embedding=embedding
         )
         artifact_chunks.append(chunk)
@@ -128,15 +128,15 @@ def create_artifact_from_pdf(
     artifact_chunks = []
     artifact_id = ArtifactId(uuid.uuid4())
     
-    for i, chunk_text in enumerate(text_chunks):
+    for i, text_chunk in enumerate(text_chunks):
         chunk_id = ChunkId(uuid.uuid4())
-        embedding_vector = embedding_generator.generate(chunk_text)
+        embedding_vector = embedding_generator.generate(text_chunk)
         embedding = Embedding(vector=embedding_vector)
         
         chunk = ArtifactChunk(
             id=chunk_id,
             artifact_id=artifact_id,
-            content=chunk_text,
+            content=text_chunk,
             embedding=embedding
         )
         artifact_chunks.append(chunk)

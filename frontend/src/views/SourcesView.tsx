@@ -1,19 +1,24 @@
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { Search, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Search, ChevronLeft, ChevronRight, X, FileText } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { ScrollArea } from '@/components/ui/scroll-area'
 import Sidebar from '@/components/shared/Sidebar'
-import { api } from '../api/client'
+import { api, Artifact } from '../api/client'
 import { cn } from '@/lib/utils'
+import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
 
 function SourcesView() {
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedFilter, setSelectedFilter] = useState<string>('Todos')
   const [currentPage, setCurrentPage] = useState(1)
+  const [selectedArtifact, setSelectedArtifact] = useState<Artifact | null>(null)
   const itemsPerPage = 6
 
   // Busca artefatos
@@ -26,6 +31,16 @@ function SourcesView() {
     staleTime: 1000 * 30,
     refetchOnMount: 'always',
     placeholderData: (previousData) => previousData,
+  })
+
+  // Busca conteúdo do artefato selecionado
+  const { 
+    data: artifactContent,
+    isLoading: isLoadingContent
+  } = useQuery({
+    queryKey: ['artifact-content', selectedArtifact?.id],
+    queryFn: () => selectedArtifact ? api.getArtifactContent(selectedArtifact.id) : Promise.resolve({ content: '' }),
+    enabled: !!selectedArtifact && selectedArtifact.source_type === 'TEXT',
   })
 
   // Filtra artefatos
@@ -68,6 +83,16 @@ function SourcesView() {
   }
 
   const filters = ['Todos', 'Valores da Empresa', 'Estudos de Caso', 'Boas Práticas', 'Documentos de Política']
+
+  // Handler para abrir visualização do artefato
+  const handleArtifactClick = (artifact: Artifact) => {
+    setSelectedArtifact(artifact)
+  }
+
+  // Handler para fechar o dialog
+  const handleCloseDialog = () => {
+    setSelectedArtifact(null)
+  }
 
   return (
     <div className="flex h-screen w-full">
@@ -155,6 +180,7 @@ function SourcesView() {
                     <Card
                       key={artifact.id}
                       className="border border-border bg-card/50 hover:bg-card transition-colors cursor-pointer"
+                      onClick={() => handleArtifactClick(artifact)}
                     >
                       <CardContent className="p-3 flex flex-col gap-3">
                         {/* Image Placeholder */}
@@ -276,6 +302,187 @@ function SourcesView() {
           </div>
         </div>
       </main>
+
+      {/* Dialog para visualização do conteúdo */}
+      <Dialog open={!!selectedArtifact} onOpenChange={(open) => !open && handleCloseDialog()}>
+        <DialogContent className="max-w-4xl h-[85vh] flex flex-col p-0">
+          <DialogHeader className="px-6 pt-6 pb-4 border-b shrink-0">
+            <div className="flex items-start justify-between gap-4">
+              <div className="flex-1">
+                <DialogTitle className="text-2xl font-bold text-foreground pr-8">
+                  {selectedArtifact?.title}
+                </DialogTitle>
+                {selectedArtifact?.description && (
+                  <p className="text-sm text-muted-foreground mt-2 leading-relaxed">
+                    {selectedArtifact.description}
+                  </p>
+                )}
+                {selectedArtifact?.tags && selectedArtifact.tags.length > 0 && (
+                  <div className="flex flex-wrap gap-2 mt-3">
+                    {selectedArtifact.tags.map((tag, idx) => (
+                      <Badge
+                        key={idx}
+                        variant="secondary"
+                        className="text-xs font-normal"
+                      >
+                        {tag}
+                      </Badge>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </DialogHeader>
+
+          <ScrollArea className="flex-1 overflow-auto">
+            <div className="px-6 py-4">
+            {selectedArtifact?.source_type === 'PDF' ? (
+              <div className="flex flex-col items-center justify-center py-12 text-center">
+                <FileText className="h-16 w-16 text-muted-foreground mb-4" />
+                <h3 className="text-lg font-semibold text-foreground mb-2">
+                  Documento PDF
+                </h3>
+                <p className="text-sm text-muted-foreground max-w-md">
+                  Este é um documento PDF. A visualização completa de PDFs não está disponível no momento.
+                  O conteúdo deste documento é utilizado pelo agente durante as conversas.
+                </p>
+              </div>
+            ) : isLoadingContent ? (
+              <div className="space-y-3 py-4">
+                <Skeleton className="h-4 w-full" />
+                <Skeleton className="h-4 w-5/6" />
+                <Skeleton className="h-4 w-4/6" />
+                <Skeleton className="h-4 w-full" />
+                <Skeleton className="h-4 w-3/4" />
+              </div>
+            ) : (
+              <div className="prose prose-slate dark:prose-invert max-w-none">
+                <ReactMarkdown
+                  remarkPlugins={[remarkGfm]}
+                  components={{
+                    h1: ({ children }) => (
+                      <h1 className="text-3xl font-bold text-foreground mt-6 mb-4">
+                        {children}
+                      </h1>
+                    ),
+                    h2: ({ children }) => (
+                      <h2 className="text-2xl font-bold text-foreground mt-5 mb-3">
+                        {children}
+                      </h2>
+                    ),
+                    h3: ({ children }) => (
+                      <h3 className="text-xl font-semibold text-foreground mt-4 mb-2">
+                        {children}
+                      </h3>
+                    ),
+                    h4: ({ children }) => (
+                      <h4 className="text-lg font-semibold text-foreground mt-3 mb-2">
+                        {children}
+                      </h4>
+                    ),
+                    p: ({ children }) => (
+                      <p className="text-base text-foreground leading-relaxed mb-4">
+                        {children}
+                      </p>
+                    ),
+                    ul: ({ children }) => (
+                      <ul className="list-disc pl-6 space-y-2 mb-4 text-foreground">
+                        {children}
+                      </ul>
+                    ),
+                    ol: ({ children }) => (
+                      <ol className="list-decimal pl-6 space-y-2 mb-4 text-foreground">
+                        {children}
+                      </ol>
+                    ),
+                    li: ({ children }) => (
+                      <li className="text-base leading-relaxed">
+                        {children}
+                      </li>
+                    ),
+                    blockquote: ({ children }) => (
+                      <blockquote className="border-l-4 border-primary pl-4 italic text-muted-foreground my-4">
+                        {children}
+                      </blockquote>
+                    ),
+                    code: ({ inline, children }: { inline?: boolean; children?: React.ReactNode }) => 
+                      inline ? (
+                        <code className="bg-muted px-1.5 py-0.5 rounded text-sm font-mono text-foreground">
+                          {children}
+                        </code>
+                      ) : (
+                        <code className="block bg-muted p-4 rounded-lg text-sm font-mono text-foreground overflow-x-auto my-4">
+                          {children}
+                        </code>
+                      ),
+                    pre: ({ children }) => (
+                      <pre className="bg-muted p-4 rounded-lg overflow-x-auto my-4">
+                        {children}
+                      </pre>
+                    ),
+                    strong: ({ children }) => (
+                      <strong className="font-semibold text-foreground">
+                        {children}
+                      </strong>
+                    ),
+                    em: ({ children }) => (
+                      <em className="italic text-foreground">
+                        {children}
+                      </em>
+                    ),
+                    a: ({ children, href }) => (
+                      <a 
+                        href={href} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="text-primary hover:underline"
+                      >
+                        {children}
+                      </a>
+                    ),
+                    table: ({ children }) => (
+                      <div className="overflow-x-auto my-4">
+                        <table className="min-w-full divide-y divide-border">
+                          {children}
+                        </table>
+                      </div>
+                    ),
+                    thead: ({ children }) => (
+                      <thead className="bg-muted">
+                        {children}
+                      </thead>
+                    ),
+                    tbody: ({ children }) => (
+                      <tbody className="divide-y divide-border">
+                        {children}
+                      </tbody>
+                    ),
+                    tr: ({ children }) => (
+                      <tr>{children}</tr>
+                    ),
+                    th: ({ children }) => (
+                      <th className="px-4 py-2 text-left text-sm font-semibold text-foreground">
+                        {children}
+                      </th>
+                    ),
+                    td: ({ children }) => (
+                      <td className="px-4 py-2 text-sm text-foreground">
+                        {children}
+                      </td>
+                    ),
+                    hr: () => (
+                      <hr className="border-border my-6" />
+                    ),
+                  }}
+                >
+                  {artifactContent?.content || ''}
+                </ReactMarkdown>
+              </div>
+            )}
+            </div>
+          </ScrollArea>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

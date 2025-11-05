@@ -17,6 +17,7 @@ export interface Artifact {
   created_at: string
   description?: string
   tags?: string[]
+  color?: string
 }
 
 export interface Message {
@@ -92,6 +93,18 @@ export const api = {
   
   deleteArtifact: async (artifact_id: string): Promise<void> => {
     await apiClient.delete(`/artifacts/${artifact_id}`)
+  },
+  
+  getArtifactContent: async (artifact_id: string): Promise<{ content: string }> => {
+    const response = await apiClient.get(`/artifacts/${artifact_id}/content`)
+    return response.data
+  },
+
+  updateArtifact: async (artifact_id: string, formData: FormData): Promise<Artifact> => {
+    const response = await apiClient.patch(`/artifacts/${artifact_id}`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    })
+    return response.data
   },
   
   updateArtifactTags: async (artifact_id: string, tags: string[]): Promise<Artifact> => {

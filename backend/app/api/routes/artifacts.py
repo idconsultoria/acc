@@ -2,7 +2,7 @@
 from fastapi import APIRouter, UploadFile, File, Form, HTTPException
 from fastapi.responses import JSONResponse
 from typing import Optional
-from app.api.dto import ArtifactDTO, ErrorDTO, UpdateArtifactTagsPayload
+from app.api.dto import ArtifactDTO, ErrorDTO, UpdateArtifactTagsPayload, UpdateArtifactPayload
 from app.domain.artifacts.workflows import create_artifact_from_text, create_artifact_from_pdf
 from app.domain.artifacts.types import ArtifactSourceType
 from app.infrastructure.persistence.artifacts_repo import ArtifactsRepository
@@ -36,7 +36,7 @@ async def list_artifacts():
     
     result = []
     for artifact in artifacts:
-        # Busca description e tags do banco
+        # Busca description, tags e color do banco
         artifact_data = await artifacts_repo.get_artifact_data(artifact.id)
         
         result.append(ArtifactDTO(
@@ -45,7 +45,8 @@ async def list_artifacts():
             source_type=artifact.source_type.name,
             created_at=datetime.utcnow(),  # TODO: Buscar data real do banco
             description=artifact_data.get('description') if artifact_data else None,
-            tags=artifact_data.get('tags', []) if artifact_data else []
+            tags=artifact_data.get('tags', []) if artifact_data else [],
+            color=artifact_data.get('color') if artifact_data else None
         ))
     
     return result
@@ -55,7 +56,8 @@ async def list_artifacts():
 async def create_artifact(
     title: str = Form(...),
     text_content: Optional[str] = Form(None),
-    file: Optional[UploadFile] = File(None)
+    file: Optional[UploadFile] = File(None),
+    color: Optional[str] = Form(None)
 ):
     """Cria um novo Artefato Cultural."""
     if not title:
@@ -97,13 +99,19 @@ async def create_artifact(
         )
     
     # Salva no banco de dados
-    await artifacts_repo.save(artifact, source_url)
+    await artifacts_repo.save(artifact, source_url, color)
+    
+    # Busca dados completos do artefato
+    artifact_data = await artifacts_repo.get_artifact_data(artifact.id)
     
     return ArtifactDTO(
         id=artifact.id,
         title=artifact.title,
         source_type=artifact.source_type.name,
-        created_at=uuid.uuid4()  # Placeholder
+        created_at=datetime.utcnow(),
+        description=artifact_data.get('description') if artifact_data else None,
+        tags=artifact_data.get('tags', []) if artifact_data else [],
+        color=artifact_data.get('color') if artifact_data else None
     )
 
 
@@ -122,12 +130,39 @@ async def get_artifact_by_id(artifact_id: str):
     if not artifact:
         raise HTTPException(status_code=404, detail="Artefato não encontrado")
     
+    # Busca dados adicionais
+    artifact_data = await artifacts_repo.get_artifact_data(artifact_id_uuid)
+    
     return ArtifactDTO(
         id=artifact.id,
         title=artifact.title,
         source_type=artifact.source_type.name,
-        created_at=uuid.uuid4()  # Placeholder
+        created_at=datetime.utcnow(),
+        description=artifact_data.get('description') if artifact_data else None,
+        tags=artifact_data.get('tags', []) if artifact_data else [],
+        color=artifact_data.get('color') if artifact_data else None
     )
+
+
+@router.get("/artifacts/{artifact_id}/content")
+async def get_artifact_content(artifact_id: str):
+    """Obtém o conteúdo completo de um artefato (chunks concatenados)."""
+    from app.domain.shared_kernel import ArtifactId
+    
+    try:
+        artifact_id_uuid = ArtifactId(uuid.UUID(artifact_id))
+    except ValueError:
+        raise HTTPException(status_code=400, detail="ID inválido")
+    
+    artifact = await artifacts_repo.find_by_id(artifact_id_uuid)
+    
+    if not artifact:
+        raise HTTPException(status_code=404, detail="Artefato não encontrado")
+    
+    # Concatena o conteúdo de todos os chunks
+    content = "\n".join([chunk.content for chunk in artifact.chunks])
+    
+    return {"content": content}
 
 
 @router.delete("/artifacts/{artifact_id}", status_code=204)
@@ -184,6 +219,92 @@ async def update_artifact_tags(artifact_id: str, payload: UpdateArtifactTagsPayl
         source_type=artifact.source_type.name,
         created_at=datetime.utcnow(),
         description=artifact_data.get('description') if artifact_data else None,
-        tags=artifact_data.get('tags', []) if artifact_data else []
+        tags=artifact_data.get('tags', []) if artifact_data else [],
+        color=artifact_data.get('color') if artifact_data else None
+    )
+
+
+@router.patch("/artifacts/{artifact_id}", response_model=ArtifactDTO)
+async def update_artifact(
+    artifact_id: str,
+    title: Optional[str] = Form(None),
+    description: Optional[str] = Form(None),
+    tags: Optional[str] = Form(None),  # JSON string
+    color: Optional[str] = Form(None),
+    content: Optional[str] = Form(None),
+    file: Optional[UploadFile] = File(None)
+):
+    """Atualiza um artefato (aceita form-data para suportar upload de arquivo)."""
+    from app.domain.shared_kernel import ArtifactId
+    import json
+    
+    try:
+        artifact_id_uuid = ArtifactId(uuid.UUID(artifact_id))
+    except ValueError:
+        raise HTTPException(status_code=400, detail="ID inválido")
+    
+    artifact = await artifacts_repo.find_by_id(artifact_id_uuid)
+    
+    if not artifact:
+        raise HTTPException(status_code=404, detail="Artefato não encontrado")
+    
+    # Atualiza os campos fornecidos
+    if title is not None:
+        await artifacts_repo.update_artifact_title(artifact_id_uuid, title)
+    
+    if description is not None:
+        await artifacts_repo.update_artifact_description(artifact_id_uuid, description)
+    
+    if tags is not None:
+        tags_list = json.loads(tags) if tags else []
+        await artifacts_repo.update_artifact_tags(artifact_id_uuid, tags_list)
+    
+    if color is not None:
+        await artifacts_repo.update_artifact_color(artifact_id_uuid, color)
+    
+    # Atualiza conteúdo se for TEXT
+    if content is not None and artifact.source_type.name == "TEXT":
+        await artifacts_repo.update_artifact_content(artifact_id_uuid, content, embedding_generator)
+    
+    # Substitui PDF se um novo arquivo foi enviado
+    if file and artifact.source_type.name == "PDF":
+        file_content = await file.read()
+        
+        if not file.filename.endswith('.pdf'):
+            raise HTTPException(status_code=400, detail="Apenas arquivos PDF são aceitos")
+        
+        # Processa novo PDF
+        from app.domain.artifacts.workflows import create_artifact_from_pdf
+        temp_artifact = create_artifact_from_pdf(
+            title=artifact.title,  # Mantém título atual
+            pdf_content=file_content,
+            pdf_processor=pdf_processor,
+            embedding_generator=embedding_generator
+        )
+        
+        # Deleta chunks antigos
+        await artifacts_repo.delete_chunks(artifact_id_uuid)
+        
+        # Salva novos chunks
+        await artifacts_repo.save_chunks(artifact_id_uuid, temp_artifact.chunks)
+        
+        # Atualiza URL do PDF no storage
+        storage_path = f"artifacts/{artifact_id_uuid}/{file.filename}"
+        supabase_storage.storage.from_("artifacts").upload(storage_path, file_content, {"upsert": "true"})
+        source_url = supabase_storage.storage.from_("artifacts").get_public_url(storage_path)
+        await artifacts_repo.update_source_url(artifact_id_uuid, source_url)
+    
+    # Busca dados atualizados
+    artifact_data = await artifacts_repo.get_artifact_data(artifact_id_uuid)
+    updated_artifact = await artifacts_repo.find_by_id(artifact_id_uuid)
+    
+    return ArtifactDTO(
+        id=updated_artifact.id,
+        title=updated_artifact.title,
+        source_type=updated_artifact.source_type.name,
+        created_at=datetime.utcnow(),
+        description=artifact_data.get('description') if artifact_data else None,
+        tags=artifact_data.get('tags', []) if artifact_data else [],
+        color=artifact_data.get('color') if artifact_data else None
     )
 

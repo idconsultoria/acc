@@ -14,13 +14,14 @@ class ArtifactsRepository:
         """Inicializa o repositório com cliente Supabase."""
         self.supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
     
-    async def save(self, artifact: Artifact, source_url: str | None = None) -> Artifact:
+    async def save(self, artifact: Artifact, source_url: str | None = None, color: str | None = None) -> Artifact:
         """
         Salva um artefato e seus chunks no banco de dados.
         
         Args:
             artifact: Artefato a ser salvo
             source_url: URL do arquivo no Supabase Storage (se aplicável)
+            color: Cor de fundo do card (se aplicável)
         
         Returns:
             Artefato salvo
@@ -31,6 +32,7 @@ class ArtifactsRepository:
             "title": artifact.title,
             "source_type": artifact.source_type.name,
             "source_url": source_url,
+            "color": color,
             "created_at": "now()"
         }
         
@@ -83,24 +85,58 @@ class ArtifactsRepository:
         )
     
     async def get_artifact_data(self, artifact_id: ArtifactId) -> dict | None:
-        """Busca dados adicionais do artefato (description, tags)."""
-        result = self.supabase.table("artifacts").select("description, tags").eq("id", str(artifact_id)).execute()
+        """Busca dados adicionais do artefato (description, tags, color)."""
+        result = self.supabase.table("artifacts").select("description, tags, color").eq("id", str(artifact_id)).execute()
         
         if not result.data:
             return None
         
         return {
             "description": result.data[0].get("description"),
-            "tags": result.data[0].get("tags", []) or []
+            "tags": result.data[0].get("tags", []) or [],
+            "color": result.data[0].get("color")
         }
     
     async def update_artifact_tags(self, artifact_id: ArtifactId, tags: list[str]) -> None:
         """Atualiza as tags de um artefato."""
         self.supabase.table("artifacts").update({"tags": tags}).eq("id", str(artifact_id)).execute()
     
+    async def update_artifact_title(self, artifact_id: ArtifactId, title: str) -> None:
+        """Atualiza o título de um artefato."""
+        self.supabase.table("artifacts").update({"title": title}).eq("id", str(artifact_id)).execute()
+    
     async def update_artifact_description(self, artifact_id: ArtifactId, description: str | None) -> None:
         """Atualiza a descrição de um artefato."""
         self.supabase.table("artifacts").update({"description": description}).eq("id", str(artifact_id)).execute()
+    
+    async def update_artifact_color(self, artifact_id: ArtifactId, color: str | None) -> None:
+        """Atualiza a cor de um artefato."""
+        self.supabase.table("artifacts").update({"color": color}).eq("id", str(artifact_id)).execute()
+    
+    async def update_artifact_content(self, artifact_id: ArtifactId, new_content: str, embedding_generator) -> None:
+        """Atualiza o conteúdo de um artefato TEXT re-processando os chunks."""
+        from app.domain.artifacts.workflows import chunk_text
+        
+        # Deleta chunks antigos
+        self.supabase.table("artifact_chunks").delete().eq("artifact_id", str(artifact_id)).execute()
+        
+        # Cria novos chunks
+        text_chunks = chunk_text(new_content)
+        
+        for i, text_chunk in enumerate(text_chunks):
+            from app.domain.shared_kernel import ChunkId, Embedding
+            chunk_id = ChunkId(uuid.uuid4())
+            embedding_vector = embedding_generator.generate(text_chunk)
+            embedding = Embedding(vector=embedding_vector)
+            
+            chunk_data = {
+                "id": str(chunk_id),
+                "artifact_id": str(artifact_id),
+                "content": text_chunk,
+                "embedding": embedding.vector
+            }
+            
+            self.supabase.table("artifact_chunks").insert(chunk_data).execute()
     
     async def find_all(self) -> list[Artifact]:
         """Busca todos os artefatos (sem chunks, apenas metadados)."""
@@ -128,6 +164,25 @@ class ArtifactsRepository:
         
         # Deleta o artefato
         self.supabase.table("artifacts").delete().eq("id", str(artifact_id)).execute()
+    
+    async def delete_chunks(self, artifact_id: ArtifactId) -> None:
+        """Deleta apenas os chunks de um artefato."""
+        self.supabase.table("artifact_chunks").delete().eq("artifact_id", str(artifact_id)).execute()
+    
+    async def save_chunks(self, artifact_id: ArtifactId, chunks: list) -> None:
+        """Salva chunks de um artefato."""
+        for chunk in chunks:
+            chunk_data = {
+                "id": str(chunk.id),
+                "artifact_id": str(artifact_id),
+                "content": chunk.content,
+                "embedding": chunk.embedding.vector
+            }
+            self.supabase.table("artifact_chunks").insert(chunk_data).execute()
+    
+    async def update_source_url(self, artifact_id: ArtifactId, source_url: str) -> None:
+        """Atualiza a URL do source de um artefato."""
+        self.supabase.table("artifacts").update({"source_url": source_url}).eq("id", str(artifact_id)).execute()
     
     async def find_chunks_by_embedding(self, embedding: list[float], limit: int = 5) -> list[ArtifactChunk]:
         """

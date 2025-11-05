@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { api } from '../../api/client'
-import { Loader2, Plus, Trash2, Tag, XCircle, FileText, File, Check } from 'lucide-react'
+import { api, Artifact } from '../../api/client'
+import { Loader2, Plus, Trash2, Tag, XCircle, FileText, File, Check, Pencil } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent } from '@/components/ui/card'
@@ -11,13 +11,100 @@ import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
 import AdminSidebar from '@/components/shared/AdminSidebar'
 
+// Paleta de cores inspirada no shadcn-ui com bordas e fundos sutis
+const COLOR_PALETTE = [
+  { 
+    name: 'Padrão', 
+    value: null, 
+    styles: '', 
+    preview: 'bg-background border-2 border-dashed border-muted-foreground/25',
+    description: 'Sem destaque'
+  },
+  { 
+    name: 'Slate', 
+    value: 'slate', 
+    styles: 'bg-slate-50/50 border-slate-200 dark:bg-slate-950/50 dark:border-slate-800', 
+    preview: 'bg-slate-100 border-2 border-slate-300',
+    description: 'Neutro e profissional'
+  },
+  { 
+    name: 'Zinc', 
+    value: 'zinc', 
+    styles: 'bg-zinc-50/50 border-zinc-200 dark:bg-zinc-950/50 dark:border-zinc-800', 
+    preview: 'bg-zinc-100 border-2 border-zinc-300',
+    description: 'Moderno e elegante'
+  },
+  { 
+    name: 'Rose', 
+    value: 'rose', 
+    styles: 'bg-rose-50/50 border-rose-200 dark:bg-rose-950/50 dark:border-rose-800', 
+    preview: 'bg-rose-100 border-2 border-rose-300',
+    description: 'Delicado e acolhedor'
+  },
+  { 
+    name: 'Blue', 
+    value: 'blue', 
+    styles: 'bg-blue-50/50 border-blue-200 dark:bg-blue-950/50 dark:border-blue-800', 
+    preview: 'bg-blue-100 border-2 border-blue-300',
+    description: 'Confiável e calmo'
+  },
+  { 
+    name: 'Green', 
+    value: 'green', 
+    styles: 'bg-green-50/50 border-green-200 dark:bg-green-950/50 dark:border-green-800', 
+    preview: 'bg-green-100 border-2 border-green-300',
+    description: 'Natural e positivo'
+  },
+  { 
+    name: 'Violet', 
+    value: 'violet', 
+    styles: 'bg-violet-50/50 border-violet-200 dark:bg-violet-950/50 dark:border-violet-800', 
+    preview: 'bg-violet-100 border-2 border-violet-300',
+    description: 'Criativo e único'
+  },
+  { 
+    name: 'Amber', 
+    value: 'amber', 
+    styles: 'bg-amber-50/50 border-amber-200 dark:bg-amber-950/50 dark:border-amber-800', 
+    preview: 'bg-amber-100 border-2 border-amber-300',
+    description: 'Caloroso e energético'
+  },
+  { 
+    name: 'Orange', 
+    value: 'orange', 
+    styles: 'bg-orange-50/50 border-orange-200 dark:bg-orange-950/50 dark:border-orange-800', 
+    preview: 'bg-orange-100 border-2 border-orange-300',
+    description: 'Vibrante e atencioso'
+  },
+  { 
+    name: 'Emerald', 
+    value: 'emerald', 
+    styles: 'bg-emerald-50/50 border-emerald-200 dark:bg-emerald-950/50 dark:border-emerald-800', 
+    preview: 'bg-emerald-100 border-2 border-emerald-300',
+    description: 'Fresco e renovador'
+  },
+]
+
+// Função para obter cor aleatória da paleta
+const getRandomColor = () => {
+  const colorsWithValue = COLOR_PALETTE.filter(c => c.value !== null)
+  const randomIndex = Math.floor(Math.random() * colorsWithValue.length)
+  return colorsWithValue[randomIndex].value
+}
+
 function AdminArtifactsView() {
   const queryClient = useQueryClient()
   const [showAddModal, setShowAddModal] = useState(false)
+  const [showEditModal, setShowEditModal] = useState(false)
+  const [editingArtifact, setEditingArtifact] = useState<Artifact | null>(null)
   const [addTitle, setAddTitle] = useState('')
   const [addText, setAddText] = useState('')
   const [addFile, setAddFile] = useState<File | null>(null)
   const [addType, setAddType] = useState<'text' | 'pdf'>('text')
+  const [addColor, setAddColor] = useState<string | null>(getRandomColor())
+  const [editContent, setEditContent] = useState('')
+  const [loadingContent, setLoadingContent] = useState(false)
+  const [replaceFile, setReplaceFile] = useState(false)
   const [showTagsModal, setShowTagsModal] = useState<string | null>(null)
   const [artifactTags, setArtifactTags] = useState<string[]>([])
   const [newTag, setNewTag] = useState('')
@@ -40,6 +127,10 @@ function AdminArtifactsView() {
         formData.append('file', addFile)
       }
       
+      if (addColor) {
+        formData.append('color', addColor)
+      }
+      
       return api.createArtifact(formData)
     },
     onSuccess: () => {
@@ -48,6 +139,53 @@ function AdminArtifactsView() {
       setAddTitle('')
       setAddText('')
       setAddFile(null)
+      setAddColor(getRandomColor())
+    },
+  })
+
+  // Edita artefato
+  const updateArtifactMutation = useMutation({
+    mutationFn: async () => {
+      if (!editingArtifact) return
+      
+      const formData = new FormData()
+      formData.append('title', addTitle)
+      
+      if (addText) {
+        formData.append('description', addText)
+      }
+      
+      if (artifactTags.length > 0) {
+        formData.append('tags', JSON.stringify(artifactTags))
+      }
+      
+      if (addColor) {
+        formData.append('color', addColor)
+      }
+      
+      // Se for TEXT e o conteúdo foi alterado
+      if (editingArtifact.source_type === 'TEXT' && editContent) {
+        formData.append('content', editContent)
+      }
+      
+      // Se for PDF e um novo arquivo foi selecionado
+      if (editingArtifact.source_type === 'PDF' && addFile) {
+        formData.append('file', addFile)
+      }
+      
+      return api.updateArtifact(editingArtifact.id, formData)
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['artifacts'] })
+      setShowEditModal(false)
+      setEditingArtifact(null)
+      setAddTitle('')
+      setAddText('')
+      setArtifactTags([])
+      setAddColor(null)
+      setEditContent('')
+      setAddFile(null)
+      setReplaceFile(false)
     },
   })
 
@@ -76,6 +214,35 @@ function AdminArtifactsView() {
     setArtifactTags(artifact.tags || [])
     setShowTagsModal(artifact.id)
     setNewTag('')
+  }
+
+  // Abre modal de edição
+  const handleOpenEditModal = async (artifact: typeof artifacts[0]) => {
+    setEditingArtifact(artifact)
+    setAddTitle(artifact.title)
+    setAddText(artifact.description || '')
+    setArtifactTags(artifact.tags || [])
+    setAddColor(artifact.color || null)
+    setReplaceFile(false)
+    setAddFile(null)
+    
+    // Carrega o conteúdo se for TEXT
+    if (artifact.source_type === 'TEXT') {
+      setLoadingContent(true)
+      try {
+        const { content } = await api.getArtifactContent(artifact.id)
+        setEditContent(content)
+      } catch (error) {
+        console.error('Erro ao carregar conteúdo:', error)
+        setEditContent('')
+      } finally {
+        setLoadingContent(false)
+      }
+    } else {
+      setEditContent('')
+    }
+    
+    setShowEditModal(true)
   }
 
   // Adiciona tag
@@ -123,7 +290,10 @@ function AdminArtifactsView() {
                 {/* Card Adicionar Novo */}
                 <Card
                   className="border-2 border-dashed border-border hover:border-primary hover:bg-primary/5 transition-colors cursor-pointer group"
-                  onClick={() => setShowAddModal(true)}
+                  onClick={() => {
+                    setAddColor(getRandomColor())
+                    setShowAddModal(true)
+                  }}
                 >
                   <CardContent className="flex flex-col items-center justify-center p-6 text-center">
                     <Plus className="h-12 w-12 text-primary mb-2" />
@@ -132,10 +302,14 @@ function AdminArtifactsView() {
                 </Card>
 
                 {/* Cards de Artefatos */}
-                {artifacts.map((artifact) => (
+                {artifacts.map((artifact) => {
+                  const colorConfig = COLOR_PALETTE.find(c => c.value === artifact.color)
+                  const colorStyles = colorConfig?.styles || ''
+                  
+                  return (
                   <Card
                     key={artifact.id}
-                    className="relative group border border-border hover:shadow-md transition-all"
+                    className={`relative group hover:shadow-lg transition-all duration-200 ${colorStyles}`}
                   >
                     <CardContent className="p-4 flex flex-col">
                       <div className="flex-1">
@@ -172,6 +346,17 @@ function AdminArtifactsView() {
                           size="icon"
                           onClick={(e) => {
                             e.stopPropagation()
+                            handleOpenEditModal(artifact)
+                          }}
+                          className="h-8 w-8 text-blue-600 hover:text-blue-600 hover:bg-blue-600/10"
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={(e) => {
+                            e.stopPropagation()
                             handleOpenTagsModal(artifact)
                           }}
                           className="h-8 w-8 text-primary hover:text-primary hover:bg-primary/10"
@@ -193,7 +378,8 @@ function AdminArtifactsView() {
                       </div>
                     </CardContent>
                   </Card>
-                ))}
+                  )
+                })}
               </div>
             </section>
           </div>
@@ -202,7 +388,7 @@ function AdminArtifactsView() {
 
       {/* Modal Adicionar Artefato */}
       <Dialog open={showAddModal} onOpenChange={setShowAddModal}>
-        <DialogContent>
+        <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col">
           <DialogHeader>
             <DialogTitle>Adicionar Novo Artefato</DialogTitle>
             <DialogDescription>
@@ -210,7 +396,7 @@ function AdminArtifactsView() {
             </DialogDescription>
           </DialogHeader>
           
-          <div className="space-y-4">
+          <div className="space-y-4 overflow-y-auto pr-2 flex-1">
             <div className="space-y-2">
               <Label htmlFor="artifact-title">Título do Artefato</Label>
               <Input
@@ -251,8 +437,11 @@ function AdminArtifactsView() {
                   placeholder="Digite o conteúdo do artefato..."
                   value={addText}
                   onChange={(e) => setAddText(e.target.value)}
-                  className="min-h-[200px]"
+                  className="min-h-[300px] font-mono text-sm"
                 />
+                <p className="text-xs text-muted-foreground">
+                  O texto será processado automaticamente em chunks para busca semântica
+                </p>
               </div>
             ) : (
               <div className="space-y-2">
@@ -263,11 +452,38 @@ function AdminArtifactsView() {
                   accept=".pdf"
                   onChange={(e) => setAddFile(e.target.files?.[0] || null)}
                 />
+                <p className="text-xs text-muted-foreground">
+                  O PDF será extraído, processado em chunks e indexado para busca
+                </p>
               </div>
             )}
+
+            <div className="space-y-3">
+              <Label>Tema do Card (opcional)</Label>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                {COLOR_PALETTE.map((color) => (
+                  <button
+                    key={color.value || 'none'}
+                    type="button"
+                    onClick={() => setAddColor(color.value)}
+                    className={`group flex flex-col items-center gap-2 p-3 rounded-lg border-2 transition-all ${
+                      addColor === color.value
+                        ? 'border-primary bg-primary/5'
+                        : 'border-border hover:border-primary/50 hover:bg-accent'
+                    }`}
+                  >
+                    <div className={`w-full h-10 rounded-md ${color.preview}`} />
+                    <div className="text-center">
+                      <p className="text-xs font-medium">{color.name}</p>
+                      <p className="text-[10px] text-muted-foreground line-clamp-1">{color.description}</p>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
           
-          <DialogFooter>
+          <DialogFooter className="flex-shrink-0">
             <Button
               variant="outline"
               onClick={() => {
@@ -275,21 +491,29 @@ function AdminArtifactsView() {
                 setAddTitle('')
                 setAddText('')
                 setAddFile(null)
+                setAddColor(getRandomColor())
               }}
             >
               Cancelar
             </Button>
             <Button
               onClick={() => createArtifactMutation.mutate()}
-              disabled={createArtifactMutation.isPending || !addTitle.trim()}
+              disabled={
+                createArtifactMutation.isPending || 
+                !addTitle.trim() || 
+                (addType === 'text' ? !addText.trim() : !addFile)
+              }
             >
               {createArtifactMutation.isPending ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Enviando...
+                  Processando...
                 </>
               ) : (
-                'Adicionar'
+                <>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Adicionar Artefato
+                </>
               )}
             </Button>
           </DialogFooter>
@@ -375,6 +599,195 @@ function AdminArtifactsView() {
                 <>
                   <Check className="h-4 w-4 mr-2" />
                   Salvar Tags
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal de Edição */}
+      <Dialog open={showEditModal} onOpenChange={setShowEditModal}>
+        <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col">
+          <DialogHeader>
+            <DialogTitle>Editar Artefato</DialogTitle>
+            <DialogDescription>
+              Atualize as informações do artefato cultural
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 overflow-y-auto pr-2 flex-1">
+            <div className="space-y-2">
+              <Label htmlFor="edit-title">Título do Artefato</Label>
+              <Input
+                id="edit-title"
+                placeholder="Ex: Manual de Valores"
+                value={addTitle}
+                onChange={(e) => setAddTitle(e.target.value)}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="edit-description">Descrição (opcional)</Label>
+              <Textarea
+                id="edit-description"
+                placeholder="Adicione uma descrição do artefato..."
+                value={addText}
+                onChange={(e) => setAddText(e.target.value)}
+                className="min-h-[80px]"
+              />
+            </div>
+
+            {/* Conteúdo do Artefato */}
+            {editingArtifact && editingArtifact.source_type === 'TEXT' && (
+              <div className="space-y-2">
+                <Label htmlFor="edit-content">Conteúdo do Artefato</Label>
+                {loadingContent ? (
+                  <div className="flex items-center justify-center p-8 border rounded-md bg-muted/50">
+                    <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                    <span className="ml-2 text-sm text-muted-foreground">Carregando conteúdo...</span>
+                  </div>
+                ) : (
+                  <Textarea
+                    id="edit-content"
+                    placeholder="Edite o conteúdo do artefato..."
+                    value={editContent}
+                    onChange={(e) => setEditContent(e.target.value)}
+                    className="min-h-[300px] font-mono text-sm"
+                  />
+                )}
+              </div>
+            )}
+
+            {/* Substituir PDF */}
+            {editingArtifact && editingArtifact.source_type === 'PDF' && (
+              <div className="space-y-3 p-4 border rounded-lg bg-muted/50">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Label>Arquivo PDF Atual</Label>
+                    <p className="text-sm text-muted-foreground">Este artefato foi criado a partir de um PDF</p>
+                  </div>
+                  <Button
+                    type="button"
+                    variant={replaceFile ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setReplaceFile(!replaceFile)}
+                  >
+                    {replaceFile ? 'Cancelar substituição' : 'Substituir PDF'}
+                  </Button>
+                </div>
+                
+                {replaceFile && (
+                  <div className="space-y-2 pt-2">
+                    <Label htmlFor="replace-pdf">Novo Arquivo PDF</Label>
+                    <Input
+                      id="replace-pdf"
+                      type="file"
+                      accept=".pdf"
+                      onChange={(e) => setAddFile(e.target.files?.[0] || null)}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      O arquivo será reprocessado e os chunks atualizados automaticamente
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
+
+            <div className="space-y-2">
+              <Label>Tags</Label>
+              <div className="flex flex-wrap gap-2 p-3 min-h-[60px] border rounded-md bg-muted/50">
+                {artifactTags.length === 0 ? (
+                  <span className="text-sm text-muted-foreground">Nenhuma tag adicionada</span>
+                ) : (
+                  artifactTags.map((tag) => (
+                    <Badge key={tag} variant="secondary" className="flex items-center gap-1">
+                      {tag}
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveTag(tag)}
+                        className="ml-1 hover:text-destructive"
+                      >
+                        <XCircle className="h-3 w-3" />
+                      </button>
+                    </Badge>
+                  ))
+                )}
+              </div>
+              <div className="flex gap-2">
+                <Input
+                  placeholder="Ex: Artigo, Comunicação, Política..."
+                  value={newTag}
+                  onChange={(e) => setNewTag(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault()
+                      handleAddTag()
+                    }
+                  }}
+                />
+                <Button type="button" size="icon" onClick={handleAddTag} disabled={!newTag.trim()}>
+                  <Plus className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <Label>Tema do Card (opcional)</Label>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                {COLOR_PALETTE.map((color) => (
+                  <button
+                    key={color.value || 'none'}
+                    type="button"
+                    onClick={() => setAddColor(color.value)}
+                    className={`group flex flex-col items-center gap-2 p-3 rounded-lg border-2 transition-all ${
+                      addColor === color.value
+                        ? 'border-primary bg-primary/5'
+                        : 'border-border hover:border-primary/50 hover:bg-accent'
+                    }`}
+                  >
+                    <div className={`w-full h-10 rounded-md ${color.preview}`} />
+                    <div className="text-center">
+                      <p className="text-xs font-medium">{color.name}</p>
+                      <p className="text-[10px] text-muted-foreground line-clamp-1">{color.description}</p>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+          
+          <DialogFooter className="flex-shrink-0">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setShowEditModal(false)
+                setEditingArtifact(null)
+                setAddTitle('')
+                setAddText('')
+                setArtifactTags([])
+                setAddColor(null)
+                setNewTag('')
+                setEditContent('')
+                setReplaceFile(false)
+                setAddFile(null)
+              }}
+            >
+              Cancelar
+            </Button>
+            <Button
+              onClick={() => updateArtifactMutation.mutate()}
+              disabled={updateArtifactMutation.isPending || !addTitle.trim()}
+            >
+              {updateArtifactMutation.isPending ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Salvando...
+                </>
+              ) : (
+                <>
+                  <Check className="h-4 w-4 mr-2" />
+                  Salvar Alterações
                 </>
               )}
             </Button>

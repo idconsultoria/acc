@@ -13,6 +13,15 @@ class ArtifactDTO(BaseModel):
     created_at: datetime
     description: str | None = None
     tags: list[str] = []
+    color: str | None = None
+
+
+class UpdateArtifactPayload(BaseModel):
+    """Payload para atualizar um artefato."""
+    title: str | None = None
+    description: str | None = None
+    tags: list[str] | None = None
+    color: str | None = None
 
 
 class UpdateArtifactTagsPayload(BaseModel):

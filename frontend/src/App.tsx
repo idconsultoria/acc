@@ -7,6 +7,8 @@ import SettingsView from './views/SettingsView'
 import AdminAgentInstructionView from './views/admin/AdminAgentInstructionView'
 import AdminArtifactsView from './views/admin/AdminArtifactsView'
 import AdminFeedbackView from './views/admin/AdminFeedbackView'
+import AdminSettingsView from './views/admin/AdminSettingsView'
+import AdminHelpView from './views/admin/AdminHelpView'
 
 function App() {
   return (
@@ -22,6 +24,8 @@ function App() {
         <Route path="/admin/instruction" element={<AdminAgentInstructionView />} />
         <Route path="/admin/artifacts" element={<AdminArtifactsView />} />
         <Route path="/admin/feedbacks" element={<AdminFeedbackView />} />
+        <Route path="/admin/settings" element={<AdminSettingsView />} />
+        <Route path="/admin/help" element={<AdminHelpView />} />
       </Routes>
     </BrowserRouter>
   )
