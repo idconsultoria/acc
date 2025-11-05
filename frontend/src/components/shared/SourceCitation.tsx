@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { CitedSource } from '@/api/client'
-import { cn } from '@/lib/utils.ts'
+import { cn } from '@/lib/utils'
 
 interface SourceCitationProps {
   source: CitedSource

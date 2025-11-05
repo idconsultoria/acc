@@ -1,6 +1,6 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { MessageSquare, Clock, Book, User, Settings, Bot, Plus } from 'lucide-react'
-import { cn } from '@/lib/utils.ts'
+import { cn } from '@/lib/utils'
 import { useStore } from '@/state/store'
 import { api } from '@/api/client'
 

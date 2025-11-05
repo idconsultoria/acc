@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { ScrollArea } from '@/components/ui/scroll-area'
 import Sidebar from '@/components/shared/Sidebar'
 import { api, Artifact } from '../api/client'
-import { cn } from '@/lib/utils.ts'
+import { cn } from '@/lib/utils'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 

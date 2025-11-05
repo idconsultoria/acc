@@ -1,6 +1,6 @@
 import { Link, useLocation } from 'react-router-dom'
 import { FilePenLine, FileText, MessageSquare, Settings, HelpCircle, Shield } from 'lucide-react'
-import { cn } from '@/lib/utils.ts'
+import { cn } from '@/lib/utils'
 
 const AdminSidebar = () => {
   const location = useLocation()
