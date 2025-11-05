@@ -3,11 +3,10 @@ uvicorn==0.32.0
 pydantic==2.9.2
 python-dotenv==1.0.1
 supabase==2.8.0
-psycopg==3.2.3
+psycopg[binary]==3.2.3
 google-generativeai==0.8.3
 python-multipart==0.0.12
-# pymupdf - removido (muito pesado)
-# numpy - removido (não usado diretamente)
-# uvicorn[standard] -> uvicorn (sem dependências extras)
-# psycopg[binary] -> psycopg (versão mais leve)
+# pymupdf - removido (muito pesado ~60-90 MB)
+# numpy - removido (não usado diretamente ~20-30 MB)  
+# uvicorn[standard] -> uvicorn (economiza ~10-15 MB)
 
