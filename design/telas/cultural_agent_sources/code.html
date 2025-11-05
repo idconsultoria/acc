@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>AI Cultural Agent - Knowledge Base</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet"/>
+<script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#195de6",
+                        "background-light": "#f6f6f8",
+                        "background-dark": "#111722",
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+<style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+            font-size: 20px;
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark font-display">
+<div class="relative flex h-auto min-h-screen w-full flex-col overflow-x-hidden">
+<div class="layout-container flex h-full grow flex-col">
+<div class="px-4 sm:px-8 md:px-16 lg:px-24 xl:px-40 flex flex-1 justify-center py-5">
+<div class="layout-content-container flex flex-col max-w-[960px] flex-1">
+<!-- TopNavBar -->
+<header class="flex items-center justify-between whitespace-nowrap border-b border-solid border-white/10 dark:border-b-[#243047] px-4 sm:px-6 md:px-10 py-3">
+<div class="flex items-center gap-4 text-black dark:text-white">
+<div class="size-6 text-primary">
+<svg fill="none" viewbox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+<path d="M4 4H17.3334V17.3334H30.6666V30.6666H44V44H4V4Z" fill="currentColor"></path>
+</svg>
+</div>
+<h2 class="text-black dark:text-white text-lg font-bold leading-tight tracking-[-0.015em]">AI Cultural Agent</h2>
+</div>
+<div class="hidden md:flex flex-1 justify-end gap-8">
+<div class="flex items-center gap-9">
+<a class="text-black/80 dark:text-white/80 hover:text-primary dark:hover:text-primary text-sm font-medium leading-normal transition-colors" href="#">Home</a>
+<a class="text-black/80 dark:text-white/80 hover:text-primary dark:hover:text-primary text-sm font-medium leading-normal transition-colors" href="#">Dilemmas</a>
+<a class="text-primary dark:text-primary text-sm font-bold leading-normal" href="#">Knowledge Base</a>
+</div>
+<button class="flex max-w-[480px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-10 bg-black/5 dark:bg-[#243047] text-black dark:text-white gap-2 text-sm font-bold leading-normal tracking-[0.015em] min-w-0 px-2.5">
+<span class="material-symbols-outlined">toggle_on</span>
+</button>
+<div class="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-10" data-alt="User avatar image" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuC8Wg17u0Mjnz0eTH6Kl9SnsD2EPhg5UCTqUcgeKOPPsDAExk3ydP6RFicGHVW2aNNzK2838wvinXL9EDfpo3xZP8oS2sEPdmPgKuJjIfkYXt5TwWNX3mMA9x9sDFLrXjkmsw0zsCF2MXqWdxCY7gpdQaPLoJtNk8kKXv1GMF0VDNRcGRwdYgwTIbxptySN_PsoXW7V5z2SFfU2XDZ4rInCD2jelLLRZpRzX0gIuwAoWS1-Wq-kn3IIiW-0BzGSj10aLQ8SNxRdPcQ");'></div>
+</div>
+<button class="md:hidden flex items-center justify-center h-10 w-10 text-black dark:text-white">
+<span class="material-symbols-outlined">menu</span>
+</button>
+</header>
+<!-- PageHeading -->
+<div class="flex flex-wrap justify-between gap-3 p-4 pt-10">
+<div class="flex min-w-72 flex-col gap-3">
+<p class="text-black dark:text-white text-4xl font-black leading-tight tracking-[-0.033em]">Knowledge Base</p>
+<p class="text-black/60 dark:text-[#93a5c8] text-base font-normal leading-normal">Search and browse all cultural artifacts and learnings used by the agent.</p>
+</div>
+</div>
+<!-- SearchBar -->
+<div class="px-4 py-3">
+<label class="flex flex-col min-w-40 h-12 w-full">
+<div class="flex w-full flex-1 items-stretch rounded-xl h-full shadow-sm">
+<div class="text-black/50 dark:text-[#93a5c8] flex border-none bg-black/5 dark:bg-[#243047] items-center justify-center pl-4 rounded-l-xl border-r-0">
+<span class="material-symbols-outlined">search</span>
+</div>
+<input class="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-xl text-black dark:text-white focus:outline-0 focus:ring-2 focus:ring-primary/50 border-none bg-black/5 dark:bg-[#243047] h-full placeholder:text-black/50 dark:placeholder:text-[#93a5c8] px-4 rounded-l-none border-l-0 pl-2 text-base font-normal leading-normal" placeholder="Search for articles, case studies, values..." value=""/>
+</div>
+</label>
+</div>
+<!-- Chips / Filters -->
+<div class="flex gap-2 p-3 overflow-x-auto">
+<button class="flex h-8 shrink-0 items-center justify-center gap-x-2 rounded-full bg-primary text-white pl-4 pr-4">
+<p class="text-sm font-medium leading-normal">All</p>
+</button>
+<button class="flex h-8 shrink-0 items-center justify-center gap-x-2 rounded-full bg-black/5 dark:bg-[#243047] hover:bg-black/10 dark:hover:bg-primary/20 transition-colors text-black dark:text-white pl-4 pr-2">
+<p class="text-sm font-medium leading-normal">Company Values</p>
+<span class="material-symbols-outlined text-black/50 dark:text-white/50">arrow_drop_down</span>
+</button>
+<button class="flex h-8 shrink-0 items-center justify-center gap-x-2 rounded-full bg-black/5 dark:bg-[#243047] hover:bg-black/10 dark:hover:bg-primary/20 transition-colors text-black dark:text-white pl-4 pr-2">
+<p class="text-sm font-medium leading-normal">Case Studies</p>
+<span class="material-symbols-outlined text-black/50 dark:text-white/50">arrow_drop_down</span>
+</button>
+<button class="flex h-8 shrink-0 items-center justify-center gap-x-2 rounded-full bg-black/5 dark:bg-[#243047] hover:bg-black/10 dark:hover:bg-primary/20 transition-colors text-black dark:text-white pl-4 pr-2">
+<p class="text-sm font-medium leading-normal">Best Practices</p>
+<span class="material-symbols-outlined text-black/50 dark:text-white/50">arrow_drop_down</span>
+</button>
+<button class="flex h-8 shrink-0 items-center justify-center gap-x-2 rounded-full bg-black/5 dark:bg-[#243047] hover:bg-black/10 dark:hover:bg-primary/20 transition-colors text-black dark:text-white pl-4 pr-2">
+<p class="text-sm font-medium leading-normal">Policy Documents</p>
+<span class="material-symbols-outlined text-black/50 dark:text-white/50">arrow_drop_down</span>
+</button>
+</div>
+<!-- ImageGrid / Content Grid -->
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 p-4">
+<div class="flex flex-col gap-3 rounded-xl bg-black/5 dark:bg-[#243047]/50 p-3 cursor-pointer hover:bg-black/10 dark:hover:bg-[#243047] transition-colors">
+<div class="w-full bg-center bg-no-repeat aspect-video bg-cover rounded-lg" data-alt="Abstract gradient of blue and purple" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuB4r9jvNnMt_6F7QLvLgTRuPpmAro0kQlLJhzF7tJJ2DHPGHeLC5rDSYQPia157uBxOFm-s6zVbN2jAzF-Lcvtkyg8-2KF1LUzQw66Y2CCCFXXa2R8XGBK-N8vIQqGM5IKnYmOqCRk8-q6-dJEzkv919_MOTDk2NUYdPRmHEb30okhB4JwGogBL4ZGnpb1nmmaxp_q_YG8szwgFwZB4GaS0kA0PhZq_HXM7xrpI-ZlmhdVA9yqgO6VIogA7EjDv2qYqoJYPPLKqpLo");'></div>
+<div>
+<p class="text-black dark:text-white text-base font-medium leading-normal">Our Feedback Framework</p>
+<p class="text-black/60 dark:text-[#93a5c8] text-sm font-normal leading-normal mt-1">A guide to giving and receiving constructive feedback effectively.</p>
+<p class="text-black/50 dark:text-[#93a5c8]/80 text-xs font-normal leading-normal mt-2">Article • Communication</p>
+</div>
+</div>
+<div class="flex flex-col gap-3 rounded-xl bg-black/5 dark:bg-[#243047]/50 p-3 cursor-pointer hover:bg-black/10 dark:hover:bg-[#243047] transition-colors">
+<div class="w-full bg-center bg-no-repeat aspect-video bg-cover rounded-lg" data-alt="Architectural lines of a modern building" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuDdwrh7r3OoB1pNZVGo7knv7DvPox_z4eqypcWRDYkPi4ApOX0oBP7A9GUICEfRzeOrJlMIy16_oDQKsj4vwP_w1j9kuOksI44IQtDJpvoHNKIbgEmfzpAxSSWkkvWJ-aLgeaSKy0Kaqs9PGsOyggjBk3LkB2RH8kq_b1_RCaz1mIDG4XVV8PCMhtR-kNL6N6Gm0DyuQEVM1TCodUmXiVJGMUzvJ2rXmu58dH6qC8jx0cXxt65JmMRh5bm9BhQ3swRd3j7EJfXy328");'></div>
+<div>
+<p class="text-black dark:text-white text-base font-medium leading-normal">Case Study: The Apollo Project</p>
+<p class="text-black/60 dark:text-[#93a5c8] text-sm font-normal leading-normal mt-1">Analysis of a successful cross-departmental initiative.</p>
+<p class="text-black/50 dark:text-[#93a5c8]/80 text-xs font-normal leading-normal mt-2">Case Study • Leadership</p>
+</div>
+</div>
+<div class="flex flex-col gap-3 rounded-xl bg-black/5 dark:bg-[#243047]/50 p-3 cursor-pointer hover:bg-black/10 dark:hover:bg-[#243047] transition-colors">
+<div class="w-full bg-center bg-no-repeat aspect-video bg-cover rounded-lg" data-alt="Brightly colored geometric shapes" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuA5cEkIzkZRMmMrJnG0NvA7t5KSKdpaWsRL2k3gkTe0SCIWR-bgrg9Q8amxLSEBqnEWndkQkipfV6aruKvh_bLK4q0hwmbqD2IaKQpbXAtBNpvt9KvZpVYLWzXyXn0MeSpnj0zkXWzAQaYqwSlHUL0d-x8ibC1a1CNSRvfeIUm2rQN7Opj6dKJJO-vz0rHfbOKgLs-mlG-irH1xB6SLFB62eSl5a7B3aeRtEIshWMcfSAUsbubiycfj2i3sQAQhnpvfRX9cDKRcrWQ");'></div>
+<div>
+<p class="text-black dark:text-white text-base font-medium leading-normal">Core Company Values</p>
+<p class="text-black/60 dark:text-[#93a5c8] text-sm font-normal leading-normal mt-1">The fundamental beliefs that guide our company culture and decisions.</p>
+<p class="text-black/50 dark:text-[#93a5c8]/80 text-xs font-normal leading-normal mt-2">Policy • Values</p>
+</div>
+</div>
+<div class="flex flex-col gap-3 rounded-xl bg-black/5 dark:bg-[#243047]/50 p-3 cursor-pointer hover:bg-black/10 dark:hover:bg-[#243047] transition-colors">
+<div class="w-full bg-center bg-no-repeat aspect-video bg-cover rounded-lg" data-alt="A person working on a laptop in a cozy cafe" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuDm0U3eyV_6rJCuHA8Qo7Ogv7dnwJrzhvMg3Ixf8Ud3VJI84Saxl7NbINJUOVwr6oTSJ_9wHoIkPjsvzvNkCBb8cjjfM-Py_kvgbqdy-H8YNcL0S_Xqix5ltepr76QE0pGHoE2mNs8mvZuNbm9s4gMY_XVBsWmuq1vXXuNWu4Od0Y7awV2Yybj7I7DEzcWj_YSDVqSS9WI40zZn1mHSiVsLK1KQVbfec7og_fkXklB_iU47yJ4qn3MO8rXwUalsDfTpKeX8tit5tdU");'></div>
+<div>
+<p class="text-black dark:text-white text-base font-medium leading-normal">Remote Work Best Practices</p>
+<p class="text-black/60 dark:text-[#93a5c8] text-sm font-normal leading-normal mt-1">Tips and guidelines for staying productive and connected while remote.</p>
+<p class="text-black/50 dark:text-[#93a5c8]/80 text-xs font-normal leading-normal mt-2">Article • Best Practices</p>
+</div>
+</div>
+<div class="flex flex-col gap-3 rounded-xl bg-black/5 dark:bg-[#243047]/50 p-3 cursor-pointer hover:bg-black/10 dark:hover:bg-[#243047] transition-colors">
+<div class="w-full bg-center bg-no-repeat aspect-video bg-cover rounded-lg" data-alt="A secure lock icon on a digital background" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuA35xMrMDRRBA6_49HooOcdEZBbmbuw6T-G9yfkYsg9RJlfvkaRTaFtSv8-ImKSAAzwL5rDmKldMUv1pmXKgvqh8WZUX9rgh_6Mi9MmqRGewYJ4QaexlvNmCKJIcX0_BZLLTizOiNqCs9Xyhy5h9MWEn7YiieJBStpgjGg3bKCO0m_ld16AOjsIkaVSscJOU31s8gtdaxiiClpyhLFbYK4Y_lCdI-f2dHn8PgLVV32u9gvs5zFi6Ys6Ak7k9O0q_dJUkBUh2sRGdOU");'></div>
+<div>
+<p class="text-black dark:text-white text-base font-medium leading-normal">Data Security Policy</p>
+<p class="text-black/60 dark:text-[#93a5c8] text-sm font-normal leading-normal mt-1">Official guidelines for handling sensitive company and user data.</p>
+<p class="text-black/50 dark:text-[#93a5c8]/80 text-xs font-normal leading-normal mt-2">Policy • Security</p>
+</div>
+</div>
+<div class="flex flex-col gap-3 rounded-xl bg-black/5 dark:bg-[#243047]/50 p-3 cursor-pointer hover:bg-black/10 dark:hover:bg-[#243047] transition-colors">
+<div class="w-full bg-center bg-no-repeat aspect-video bg-cover rounded-lg" data-alt="A group of diverse people in a meeting" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuAXxqaoFU2CGOWRPzlf4_9lpdHgo7l_FxU1INTl9ymMCZUy1fb-7kOV5Cd9WZs64ewOy7SL4GcxkdCj_EA2I5b5oTsGLKDFsWvRT8sU31NtoubAHJ2uXcZrugSaxRxfPeID-rCtrExBQaaZ4XBhrtY9Fx2Y5fF-lt8WdX3zodXwYbC3pIAJyRaYjQzPtKerLDe96hlTxg4iXLOh57hpJvon85ccCGvsOivi-GL-Z0wqOkngNSQ_5zBMw7mf91uc5U3qWo22gFoxsQA");'></div>
+<div>
+<p class="text-black dark:text-white text-base font-medium leading-normal">Leadership Principles</p>
+<p class="text-black/60 dark:text-[#93a5c8] text-sm font-normal leading-normal mt-1">The key behaviors and expectations for leaders at our company.</p>
+<p class="text-black/50 dark:text-[#93a5c8]/80 text-xs font-normal leading-normal mt-2">Article • Leadership</p>
+</div>
+</div>
+</div>
+<!-- Pagination -->
+<div class="flex items-center justify-center p-6 mt-4">
+<nav class="flex items-center gap-2">
+<button class="flex items-center justify-center h-9 w-9 rounded-lg bg-black/5 dark:bg-[#243047] hover:bg-black/10 dark:hover:bg-primary/20 transition-colors text-black dark:text-white disabled:opacity-50" disabled="">
+<span class="material-symbols-outlined">chevron_left</span>
+</button>
+<button class="flex items-center justify-center h-9 w-9 rounded-lg bg-primary text-white text-sm font-bold">1</button>
+<button class="flex items-center justify-center h-9 w-9 rounded-lg bg-black/5 dark:bg-[#243047] hover:bg-black/10 dark:hover:bg-primary/20 transition-colors text-black dark:text-white text-sm font-medium">2</button>
+<button class="flex items-center justify-center h-9 w-9 rounded-lg bg-black/5 dark:bg-[#243047] hover:bg-black/10 dark:hover:bg-primary/20 transition-colors text-black dark:text-white text-sm font-medium">3</button>
+<span class="text-black/50 dark:text-white/50">...</span>
+<button class="flex items-center justify-center h-9 w-9 rounded-lg bg-black/5 dark:bg-[#243047] hover:bg-black/10 dark:hover:bg-primary/20 transition-colors text-black dark:text-white text-sm font-medium">12</button>
+<button class="flex items-center justify-center h-9 w-9 rounded-lg bg-black/5 dark:bg-[#243047] hover:bg-black/10 dark:hover:bg-primary/20 transition-colors text-black dark:text-white">
+<span class="material-symbols-outlined">chevron_right</span>
+</button>
+</nav>
+</div>
+</div>
+</div>
+</div>
+</div>
+</body></html>

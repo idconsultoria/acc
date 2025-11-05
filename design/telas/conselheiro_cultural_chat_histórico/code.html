@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>AI Cultural Agent</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet"/>
+<script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#195de6",
+                        "background-light": "#f6f6f8",
+                        "background-dark": "#111621",
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+<style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .material-symbols-outlined {
+            font-variation-settings:
+            'FILL' 0,
+            'wght' 400,
+            'GRAD' 0,
+            'opsz' 24
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark font-display">
+<div class="flex h-screen w-full">
+<aside class="flex flex-col w-64 bg-background-light dark:bg-[#111722] border-r border-gray-200 dark:border-gray-800">
+<div class="flex flex-col h-full justify-between p-4">
+<div class="flex flex-col gap-4">
+<div class="flex gap-3 items-center">
+<div class="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-10" data-alt="AI agent circular logo" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuBvfV7VdorlT_SfwmLyKBS8XaQFt4BOJOwRZgsbgs-cwOkk-xBdCH7KyzSWx5E6Ga1V5-9ycyLJb6LzvLwOW4aLeN90iHkFX3T3VYoOqYo-c5o13DOKadhECG7z0M6mujxKcuxWM3U0uhRETXf0O9GachVGBNsPuEV9X4J90hisGYcgycGS9hwFw4MPqioUD7K2Tu6s_wQgdgoiPmpdOJkJWOSmzz6RMzyuSwpaFhaKxQnWSQWBxp3hHBoJViHKV3TZfMgVdq56Ag0");'></div>
+<div class="flex flex-col">
+<h1 class="text-gray-900 dark:text-white text-base font-medium leading-normal">AI Cultural Agent</h1>
+<p class="text-gray-500 dark:text-[#93a5c8] text-sm font-normal leading-normal">Your reflection partner</p>
+</div>
+</div>
+<nav class="flex flex-col gap-2 mt-4">
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800/50" href="#">
+<span class="material-symbols-outlined text-gray-600 dark:text-white">chat</span>
+<p class="text-gray-600 dark:text-white text-sm font-medium leading-normal">Chat</p>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg bg-primary/20 dark:bg-[#243047]" href="#">
+<span class="material-symbols-outlined text-primary dark:text-white">history</span>
+<p class="text-primary dark:text-white text-sm font-medium leading-normal">History</p>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800/50" href="#">
+<span class="material-symbols-outlined text-gray-600 dark:text-white">book</span>
+<p class="text-gray-600 dark:text-white text-sm font-medium leading-normal">Sources</p>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800/50" href="#">
+<span class="material-symbols-outlined text-gray-600 dark:text-white">account_circle</span>
+<p class="text-gray-600 dark:text-white text-sm font-medium leading-normal">Profile</p>
+</a>
+</nav>
+</div>
+<div class="flex flex-col gap-1">
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800/50" href="#">
+<span class="material-symbols-outlined text-gray-600 dark:text-white">settings</span>
+<p class="text-gray-600 dark:text-white text-sm font-normal leading-normal">Settings</p>
+</a>
+</div>
+</div>
+</aside>
+<main class="flex flex-1 flex-col h-screen">
+<div class="flex flex-1 overflow-y-auto">
+<div class="grid grid-cols-1 md:grid-cols-3 xl:grid-cols-4 w-full h-full">
+<div class="col-span-1 border-r border-gray-200 dark:border-gray-800 p-6 flex flex-col gap-4 bg-background-light dark:bg-[#111722]">
+<h2 class="text-xl font-semibold text-gray-900 dark:text-white">Topics</h2>
+<div class="relative">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400">search</span>
+<input class="w-full pl-10 pr-4 py-2 rounded-lg border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:ring-primary focus:border-primary" placeholder="Filter topics..." type="text"/>
+</div>
+<div class="flex flex-col gap-2 overflow-y-auto">
+<button class="flex items-center gap-3 px-3 py-2 rounded-lg bg-primary/20 dark:bg-[#243047] text-primary dark:text-white text-sm font-medium leading-normal justify-between">
+<span>All Dilemmas</span>
+<span class="text-gray-500 dark:text-[#93a5c8] text-xs font-normal">12</span>
+</button>
+<button class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800/50 text-gray-600 dark:text-white text-sm font-normal leading-normal justify-between">
+<span>Workplace Conflict</span>
+<span class="text-gray-500 dark:text-[#93a5c8] text-xs font-normal">3</span>
+</button>
+<button class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800/50 text-gray-600 dark:text-white text-sm font-normal leading-normal justify-between">
+<span>Credit &amp; Recognition</span>
+<span class="text-gray-500 dark:text-[#93a5c8] text-xs font-normal">2</span>
+</button>
+<button class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800/50 text-gray-600 dark:text-white text-sm font-normal leading-normal justify-between">
+<span>Communication Skills</span>
+<span class="text-gray-500 dark:text-[#93a5c8] text-xs font-normal">4</span>
+</button>
+<button class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800/50 text-gray-600 dark:text-white text-sm font-normal leading-normal justify-between">
+<span>Team Collaboration</span>
+<span class="text-gray-500 dark:text-[#93a5c8] text-xs font-normal">3</span>
+</button>
+<button class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800/50 text-gray-600 dark:text-white text-sm font-normal leading-normal justify-between">
+<span>Ethical Dilemmas</span>
+<span class="text-gray-500 dark:text-[#93a5c8] text-xs font-normal">1</span>
+</button>
+<button class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800/50 text-gray-600 dark:text-white text-sm font-normal leading-normal justify-between">
+<span>Performance Feedback</span>
+<span class="text-gray-500 dark:text-[#93a5c8] text-xs font-normal">2</span>
+</button>
+</div>
+</div>
+<div class="col-span-2 xl:col-span-3 p-6 flex flex-col gap-6 overflow-y-auto">
+<h2 class="text-xl font-semibold text-gray-900 dark:text-white">Conversation Summaries</h2>
+<div class="flex flex-col gap-3 p-4 rounded-lg bg-white dark:bg-[#111722] border border-gray-200 dark:border-gray-800">
+<div class="flex items-center justify-between">
+<h3 class="text-lg font-medium text-gray-900 dark:text-white">Handling stolen ideas in meetings</h3>
+<p class="text-gray-500 dark:text-[#93a5c8] text-sm">2 days ago</p>
+</div>
+<p class="text-gray-800 dark:text-gray-300 text-sm leading-relaxed">
+                            User asked for a professional way to address a colleague taking credit for their ideas. Agent suggested private conversation, documenting ideas (citing "Company Policy #2.1"), and using "we" language in meetings (citing "Ethical Guidelines").
+                        </p>
+<div class="flex flex-wrap gap-2 pt-2">
+<span class="bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 px-3 py-1 rounded-full text-xs font-medium">#WorkplaceConflict</span>
+<span class="bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 px-3 py-1 rounded-full text-xs font-medium">#CreditRecognition</span>
+</div>
+<div class="flex justify-end pt-2">
+<button class="text-primary dark:text-white hover:underline text-sm font-medium">Revisit Conversation</button>
+</div>
+</div>
+<div class="flex flex-col gap-3 p-4 rounded-lg bg-white dark:bg-[#111722] border border-gray-200 dark:border-gray-800">
+<div class="flex items-center justify-between">
+<h3 class="text-lg font-medium text-gray-900 dark:text-white">Giving constructive feedback to a junior colleague</h3>
+<p class="text-gray-500 dark:text-[#93a5c8] text-sm">1 week ago</p>
+</div>
+<p class="text-gray-800 dark:text-gray-300 text-sm leading-relaxed">
+                            User sought advice on how to provide effective feedback to a new team member struggling with deadlines. Agent recommended the SBI (Situation-Behavior-Impact) model and emphasizing growth mindset.
+                        </p>
+<div class="flex flex-wrap gap-2 pt-2">
+<span class="bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 px-3 py-1 rounded-full text-xs font-medium">#PerformanceFeedback</span>
+<span class="bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 px-3 py-1 rounded-full text-xs font-medium">#CommunicationSkills</span>
+</div>
+<div class="flex justify-end pt-2">
+<button class="text-primary dark:text-white hover:underline text-sm font-medium">Revisit Conversation</button>
+</div>
+</div>
+<div class="flex flex-col gap-3 p-4 rounded-lg bg-white dark:bg-[#111722] border border-gray-200 dark:border-gray-800">
+<div class="flex items-center justify-between">
+<h3 class="text-lg font-medium text-gray-900 dark:text-white">Navigating cultural differences in a global team</h3>
+<p class="text-gray-500 dark:text-[#93a5c8] text-sm">2 weeks ago</p>
+</div>
+<p class="text-gray-800 dark:text-gray-300 text-sm leading-relaxed">
+                            User needed help understanding communication styles across different cultures within a remote team. Agent provided insights into high-context vs. low-context cultures and advised active listening.
+                        </p>
+<div class="flex flex-wrap gap-2 pt-2">
+<span class="bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 px-3 py-1 rounded-full text-xs font-medium">#TeamCollaboration</span>
+<span class="bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 px-3 py-1 rounded-full text-xs font-medium">#CommunicationSkills</span>
+</div>
+<div class="flex justify-end pt-2">
+<button class="text-primary dark:text-white hover:underline text-sm font-medium">Revisit Conversation</button>
+</div>
+</div>
+</div>
+</div>
+</div>
+</main>
+</div>
+
+</body></html>

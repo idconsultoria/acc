@@ -1,0 +1,84 @@
+import { Link, useLocation } from 'react-router-dom'
+import { FilePenLine, FileText, MessageSquare, Settings, HelpCircle, Shield } from 'lucide-react'
+import { cn } from '@/lib/utils'
+
+const AdminSidebar = () => {
+  const location = useLocation()
+
+  const navItems = [
+    { icon: FilePenLine, label: 'Instrução do Agente', path: '/admin/instruction' },
+    { icon: FileText, label: 'Artefatos Culturais', path: '/admin/artifacts' },
+    { icon: MessageSquare, label: 'Revisão de Feedback', path: '/admin/feedbacks' },
+  ]
+
+  const utilityItems = [
+    { icon: Settings, label: 'Configurações', path: '/admin/settings' },
+    { icon: HelpCircle, label: 'Ajuda e Suporte', path: '/admin/help' },
+  ]
+
+  return (
+    <aside className="flex flex-col w-64 bg-background border-r border-border">
+      <div className="flex flex-col h-full justify-between p-4">
+        <div className="flex flex-col gap-4">
+          <div className="flex gap-3 items-center">
+            <div className="bg-foreground text-background rounded-lg size-10 flex items-center justify-center shrink-0 shadow-lg">
+              <Shield className="h-5 w-5 text-background" strokeWidth={2.5} fill="currentColor" />
+            </div>
+            <div className="flex flex-col">
+              <h1 className="text-foreground text-base font-bold leading-normal">Guardião Cultural</h1>
+              <p className="text-muted-foreground text-xs font-normal leading-normal">Painel de Administração</p>
+            </div>
+          </div>
+
+          <nav className="flex flex-col gap-2 mt-4">
+            {navItems.map((item) => {
+              const Icon = item.icon
+              const isActive = location.pathname === item.path || 
+                (item.path === '/admin/instruction' && location.pathname === '/admin')
+              
+              return (
+                <Link
+                  key={item.path}
+                  to={item.path}
+                  className={cn(
+                    'flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors',
+                    isActive
+                      ? 'bg-primary/20 text-primary dark:bg-[#243047] dark:text-white font-bold'
+                      : 'text-muted-foreground hover:bg-muted dark:hover:bg-muted/50 font-medium'
+                  )}
+                >
+                  <Icon className="h-5 w-5" />
+                  <span className="leading-normal">{item.label}</span>
+                </Link>
+              )
+            })}
+          </nav>
+        </div>
+
+        <div className="flex flex-col gap-1">
+          {utilityItems.map((item) => {
+            const Icon = item.icon
+            const isActive = location.pathname === item.path
+            
+            return (
+              <Link
+                key={item.path}
+                to={item.path}
+                className={cn(
+                  'flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:bg-muted dark:hover:bg-muted/50 transition-colors',
+                  isActive && 'bg-primary/10 text-primary'
+                )}
+              >
+                <Icon className="h-5 w-5" />
+                <span className="leading-normal">{item.label}</span>
+              </Link>
+            )
+          })}
+        </div>
+      </div>
+    </aside>
+  )
+}
+
+export default AdminSidebar
+

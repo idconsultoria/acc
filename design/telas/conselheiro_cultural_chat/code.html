@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>AI Cultural Agent</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet"/>
+<script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#195de6",
+                        "background-light": "#f6f6f8",
+                        "background-dark": "#111621",
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+<style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .material-symbols-outlined {
+            font-variation-settings:
+            'FILL' 0,
+            'wght' 400,
+            'GRAD' 0,
+            'opsz' 24
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark font-display">
+<div class="flex h-screen w-full">
+<!-- SideNavBar -->
+<aside class="flex flex-col w-64 bg-background-light dark:bg-[#111722] border-r border-gray-200 dark:border-gray-800">
+<div class="flex flex-col h-full justify-between p-4">
+<div class="flex flex-col gap-4">
+<div class="flex gap-3 items-center">
+<div class="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-10" data-alt="AI agent circular logo" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuBvfV7VdorlT_SfwmLyKBS8XaQFt4BOJOwRZgsbgs-cwOkk-xBdCH7KyzSWx5E6Ga1V5-9ycyLJb6LzvLwOW4aLeN90iHkFX3T3VYoOqYo-c5o13DOKadhECG7z0M6mujxKcuxWM3U0uhRETXf0O9GachVGBNsPuEV9X4J90hisGYcgycGS9hwFw4MPqioUD7K2Tu6s_wQgdgoiPmpdOJkJWOSmzz6RMzyuSwpaFhaKxQnWSQWBxp3hHBoJViHKV3TZfMgVdq56Ag0");'></div>
+<div class="flex flex-col">
+<h1 class="text-gray-900 dark:text-white text-base font-medium leading-normal">AI Cultural Agent</h1>
+<p class="text-gray-500 dark:text-[#93a5c8] text-sm font-normal leading-normal">Your reflection partner</p>
+</div>
+</div>
+<nav class="flex flex-col gap-2 mt-4">
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg bg-primary/20 dark:bg-[#243047]" href="#">
+<span class="material-symbols-outlined text-primary dark:text-white">chat</span>
+<p class="text-primary dark:text-white text-sm font-medium leading-normal">Chat</p>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800/50" href="#">
+<span class="material-symbols-outlined text-gray-600 dark:text-white">history</span>
+<p class="text-gray-600 dark:text-white text-sm font-medium leading-normal">History</p>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800/50" href="#">
+<span class="material-symbols-outlined text-gray-600 dark:text-white">book</span>
+<p class="text-gray-600 dark:text-white text-sm font-medium leading-normal">Sources</p>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800/50" href="#">
+<span class="material-symbols-outlined text-gray-600 dark:text-white">account_circle</span>
+<p class="text-gray-600 dark:text-white text-sm font-medium leading-normal">Profile</p>
+</a>
+</nav>
+</div>
+<div class="flex flex-col gap-1">
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800/50" href="#">
+<span class="material-symbols-outlined text-gray-600 dark:text-white">settings</span>
+<p class="text-gray-600 dark:text-white text-sm font-medium leading-normal">Settings</p>
+</a>
+</div>
+</div>
+</aside>
+<!-- Main Chat Area -->
+<main class="flex flex-1 flex-col h-screen">
+<div class="flex-1 overflow-y-auto p-6">
+<div class="mx-auto max-w-4xl space-y-8">
+<!-- Agent's Welcome Message -->
+<div class="flex gap-4">
+<div class="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-10 shrink-0" data-alt="AI agent circular logo" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuCHs7zcvvU8VMfJuiO-JWLZTAi3pugAmAI1gN0SYt3dri2-GUQmJyeoUmavuRVSPCOAvSYUuUf2FETlqZSaWpWp-SnBeBi9PidO7i8QX5foU2cxeX7Z3zTk06StrElL_iAgYDBxhIPlMFgwU7qStlZ39tJpL1mHEnAt0ehLnJtKcUeQIW9WVMWyzs9PihfPvlECfTjXU2WY4uWmJ6xZ5ov9FARI1z8r--bi_vAYJ0IXQZPKtZHcXpxSSpPi4LiPDgX7ePJM_Te3log");'></div>
+<div class="flex flex-1 flex-col items-start gap-2">
+<div class="flex flex-col gap-2 rounded-lg bg-white dark:bg-[#111722] p-4 border border-gray-200 dark:border-gray-800">
+<div class="flex flex-wrap items-center gap-3">
+<p class="text-gray-900 dark:text-white text-base font-bold leading-tight">AI Cultural Agent</p>
+<p class="text-gray-500 dark:text-[#93a5c8] text-sm font-normal leading-normal">10:30 AM</p>
+</div>
+<p class="text-gray-800 dark:text-gray-300 text-base font-normal leading-relaxed">
+                                    Hello! I'm here to help you reflect on cultural dilemmas you face at work. Feel free to describe a situation, and I'll provide advice with cited sources. You can click on any source to see a preview. Your feedback is valuable for my learning, so please use the thumbs up or down icons.
+                                </p>
+</div>
+<div class="flex flex-wrap gap-2 px-2">
+<button class="flex items-center justify-center gap-2 px-3 py-1 text-gray-500 dark:text-[#93a5c8] hover:bg-gray-100 dark:hover:bg-gray-800/50 rounded-lg">
+<span class="material-symbols-outlined text-xl">thumb_up</span>
+</button>
+<button class="flex items-center justify-center gap-2 px-3 py-1 text-gray-500 dark:text-[#93a5c8] hover:bg-gray-100 dark:hover:bg-gray-800/50 rounded-lg">
+<span class="material-symbols-outlined text-xl">thumb_down</span>
+</button>
+</div>
+</div>
+</div>
+<!-- User's Message -->
+<div class="flex items-end gap-3 justify-end">
+<div class="flex flex-col gap-1 items-end">
+<p class="text-gray-500 dark:text-[#93a5c8] text-[13px] font-normal leading-normal text-right">You</p>
+<p class="text-base font-normal leading-normal flex max-w-lg rounded-lg px-4 py-3 bg-primary text-white">
+                                I have a colleague who consistently takes credit for my ideas in team meetings. What's a professional way to handle this?
+                            </p>
+</div>
+<div class="bg-center bg-no-repeat aspect-square bg-cover rounded-full w-10 shrink-0" data-alt="User avatar with a purple to blue gradient" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuCMm0-nJaOJRmNEBJWIQ1w3eRhKEVTVnxX1YMv5deJKAsrqy5BLOlpI8e9KL1qp6xnidYswqffLvkMF3e0HKsb-nkP1DJw94ad-5yZ8vkQ2CYcLQlbQWbOIycPdMft1wye68EqPiKryAuVl_z6EFXABK4AoDsMy83bGwO6SqD_oDEYVq_FGcV19-Rfn4OGt9Z-g9_NeIvIW8i9gd4dzc-z_6vBD5I58bGOug5NnOc3sU_7g4_bqSgj-eibEDuKPnlyZDnIRKJx6u44");'></div>
+</div>
+<!-- Agent is Typing Indicator -->
+<div class="flex gap-4">
+<div class="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-10 shrink-0" data-alt="AI agent circular logo" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuCj_yArTSY1AU8VzR8EAyVmhm4ZwDK2ay96xkwEVywzDXDZMjXMBWTfac491OJZmLL6_LBMjTVXAKdRB-9xFLaqfqGpxVlAfPkXoICzAF1oN3Q2X7B9i5EO9lXP76EPtEbY_VSoSpPFsOiP9HdLIsuEw5-UJe8FlRF7soKO6Ykdl6q_AGVqV1ZT0V8FTaJFGmSmPMpMiJPHb_8itrfIj3eXf3cVA5VKBm7Zn8Pzickv4N1oXBj_XtS6-_we7xYX5ipVZBH8dcu45Mc");'></div>
+<div class="flex items-center space-x-2 rounded-lg bg-white dark:bg-[#111722] px-4 py-3 border border-gray-200 dark:border-gray-800">
+<span class="text-gray-500 dark:text-gray-400">Agent is typing...</span>
+<div class="flex items-center space-x-1">
+<div class="h-2 w-2 bg-gray-400 rounded-full animate-bounce [animation-delay:-0.3s]"></div>
+<div class="h-2 w-2 bg-gray-400 rounded-full animate-bounce [animation-delay:-0.15s]"></div>
+<div class="h-2 w-2 bg-gray-400 rounded-full animate-bounce"></div>
+</div>
+</div>
+</div>
+<!-- Agent's Response with Sources (for demonstration) -->
+<div class="flex gap-4">
+<div class="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-10 shrink-0" data-alt="AI agent circular logo" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuCjkR30EQ2ngVanoQlvSTjJJfY6MB_8WiJ_9ys4vjJ0cAyZ8X2IWrfN7ZJfGsQ8gBd_fdLHJ4Y2ptDzCr4-zMpdxs3ZCgSBKfD9MpcFMgZBnN5aA1UhC7smJ5zo7cjK5ybCVdE1_btjF1jGjIfHU9zGX8Oxv9FRkLKqToUy-vpXWt2r0qlbu4gevUp2EONH9mHu__qkSSVJ0sgzn4SCO1U6uGXO-eRpHLqLJGOdwlGql7mBThVyNlzudhvCbJuUQ_kpP4B4NcFu2Vo");'></div>
+<div class="flex flex-1 flex-col items-start gap-2">
+<div class="flex flex-col gap-2 rounded-lg bg-white dark:bg-[#111722] p-4 border border-gray-200 dark:border-gray-800">
+<div class="flex flex-wrap items-center gap-3">
+<p class="text-gray-900 dark:text-white text-base font-bold leading-tight">AI Cultural Agent</p>
+<p class="text-gray-500 dark:text-[#93a5c8] text-sm font-normal leading-normal">10:32 AM</p>
+</div>
+<div class="text-gray-800 dark:text-gray-300 text-base font-normal leading-relaxed space-y-4">
+<p>That's a challenging situation. It's important to address it constructively. Here are a few approaches based on our company's values and best practices:</p>
+<ul class="list-disc pl-5 space-y-2">
+<li><strong>Speak Privately:</strong> Approach your colleague in a non-confrontational manner. You could say something like, "I was really excited about the idea I shared for Project X, and I noticed in the meeting it came up. I'd love to collaborate on it moving forward."</li>
+<li><strong>Document Your Ideas:</strong> Before meetings, share your ideas in writing (e.g., via email or a shared document). This creates a record. This aligns with our
+                                        <div class="inline-block relative group mx-1">
+<div class="flex h-7 shrink-0 items-center justify-center gap-x-2 rounded-lg bg-primary/20 dark:bg-[#243047] px-3 cursor-pointer">
+<p class="text-primary dark:text-white text-sm font-medium leading-normal">Company Policy #2.1</p>
+</div>
+<div class="absolute bottom-full mb-2 w-72 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none group-hover:pointer-events-auto">
+<div class="bg-white dark:bg-gray-900 p-4 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700">
+<h4 class="font-bold text-gray-900 dark:text-white text-base">Source: Company Policy #2.1</h4>
+<p class="text-sm text-gray-600 dark:text-gray-400 mt-1">"All contributions and intellectual property should be clearly documented and attributed to the originator(s) in project-related communications."</p>
+</div>
+</div>
+</div>
+</li>
+<li><strong>Use "We" Language:</strong> In the meeting, you can build on the idea by saying, "Yes, and to expand on what we were discussing..." This gently re-establishes your involvement. For more on this collaborative approach, see our
+                                        <div class="inline-block relative group mx-1">
+<div class="flex h-7 shrink-0 items-center justify-center gap-x-2 rounded-lg bg-primary/20 dark:bg-[#243047] px-3 cursor-pointer">
+<p class="text-primary dark:text-white text-sm font-medium leading-normal">Ethical Guidelines</p>
+</div>
+<div class="absolute bottom-full mb-2 w-72 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none group-hover:pointer-events-auto">
+<div class="bg-white dark:bg-gray-900 p-4 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700">
+<h4 class="font-bold text-gray-900 dark:text-white text-base">Source: Ethical Guidelines</h4>
+<p class="text-sm text-gray-600 dark:text-gray-400 mt-1">"Foster a collaborative environment by acknowledging all contributors and using inclusive language that promotes teamwork over individual achievement."</p>
+</div>
+</div>
+</div>.
+                                    </li>
+</ul>
+</div>
+</div>
+<div class="flex flex-wrap gap-2 px-2">
+<button class="flex items-center justify-center gap-2 px-3 py-1 text-gray-500 dark:text-[#93a5c8] hover:bg-gray-100 dark:hover:bg-gray-800/50 rounded-lg">
+<span class="material-symbols-outlined text-xl">thumb_up</span>
+</button>
+<button class="flex items-center justify-center gap-2 px-3 py-1 text-gray-500 dark:text-[#93a5c8] hover:bg-gray-100 dark:hover:bg-gray-800/50 rounded-lg">
+<span class="material-symbols-outlined text-xl">thumb_down</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Message Input Area -->
+<div class="px-6 pb-6 pt-4 bg-background-light dark:bg-background-dark">
+<div class="mx-auto max-w-4xl">
+<div class="relative flex items-center">
+<textarea class="w-full resize-none rounded-lg border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-primary focus:border-primary pr-12 py-3 pl-4" placeholder="Type your message..." rows="1"></textarea>
+<button class="absolute right-3 flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-white hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 dark:focus:ring-offset-background-dark disabled:bg-gray-300 dark:disabled:bg-gray-700" disabled="">
+<span class="material-symbols-outlined text-xl">send</span>
+</button>
+</div>
+</div>
+</div>
+</main>
+</div>
+</body></html>

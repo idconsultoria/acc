@@ -1,0 +1,541 @@
+openapi: 3.0.3
+info:
+  title: API do Agente Cultural
+  description: |-
+    API para gerenciar Artefatos Culturais e interagir com o Agente de IA.      
+    Esta especificação cobre as funcionalidades do MVP.
+  version: 0.1.0
+
+servers:
+  - url: http://localhost:8000/api/v1
+    description: Servidor de Desenvolvimento Local
+
+tags:
+  - name: Artefatos
+    description: Operações para gerenciar os Artefatos Culturais.
+  - name: Conversas
+    description: Operações para interagir com o Agente Cultural via chat.
+  - name: Feedbacks
+    description: Operações para gerenciar feedbacks dos usuários sobre as respostas do agente.
+  - name: Agente
+    description: Operações para configurar a Instrução Geral do Agente.
+  - name: Aprendizados
+    description: Operações para visualizar os Aprendizados sintetizados a partir de feedbacks aprovados.
+
+paths:
+  /artifacts:
+    get:
+      tags:
+        - Artefatos
+      summary: Lista todos os Artefatos Culturais
+      operationId: listArtifacts
+      responses:
+        '200':
+          description: Uma lista de artefatos.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Artifact'
+    post:
+      tags:
+        - Artefatos
+      summary: Cria um novo Artefato Cultural
+      description: |-
+        Pode ser criado a partir de um texto direto ou do upload de um arquivo PDF.                                                                             
+        Use `multipart/form-data` para enviar os dados.
+      operationId: createArtifact
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                title:
+                  type: string
+                  description: O título do artefato.
+                text_content:
+                  type: string
+                  description: O conteúdo textual do artefato (usado se não houver arquivo).                                                                  
+                file:
+                  type: string
+                  format: binary
+                  description: Um arquivo PDF para ser processado.
+            encoding:
+              # Define como cada parte do multipart é tratada
+              # Esta parte é informativa para ferramentas de cliente
+      responses:
+        '201':
+          description: Artefato criado com sucesso.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Artifact'
+        '400':
+          description: Requisição inválida (ex: título faltando, ou nem texto nem arquivo fornecidos).                                                      
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /artifacts/{artifact_id}:
+    get:
+      tags:
+        - Artefatos
+      summary: Obtém um Artefato Cultural por ID
+      operationId: getArtifactById
+      parameters:
+        - name: artifact_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Detalhes do artefato.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Artifact'
+        '404':
+          description: Artefato não encontrado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    delete:
+      tags:
+        - Artefatos
+      summary: Deleta um Artefato Cultural
+      operationId: deleteArtifact
+      parameters:
+        - name: artifact_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Artefato deletado com sucesso.
+        '404':
+          description: Artefato não encontrado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /conversations:
+    post:
+      tags:
+        - Conversas
+      summary: Inicia uma nova conversa
+      description: Cria uma nova sessão de chat e retorna seu ID.
+      operationId: createConversation
+      responses:
+        '201':
+          description: Conversa criada.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  conversation_id:
+                    type: string
+                    format: uuid
+
+  /conversations/{conversation_id}/messages:
+    get:
+      tags:
+        - Conversas
+      summary: Lista as mensagens de uma conversa
+      operationId: getConversationMessages
+      parameters:
+        - name: conversation_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Uma lista de mensagens ordenadas cronologicamente.       
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Message'
+        '404':
+          description: Conversa não encontrada.
+    post:
+      tags:
+        - Conversas
+      summary: Envia uma nova mensagem para o agente
+      description: Envia o dilema do usuário e recebe o conselho cultural do agente.                                                                           
+      operationId: postMessage
+      parameters:
+        - name: conversation_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - content
+              properties:
+                content:
+                  type: string
+                  description: O texto da mensagem (dilema) do usuário.        
+                  example: "Estou com dificuldade de dar um feedback para um colega. Como posso fazer isso de forma alinhada com nossa cultura?"                
+      responses:
+        '200':
+          description: Resposta do agente cultural.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Message' # Retorna a mensagem do AGENTE                                                                             
+        '400':
+          description: Requisição inválida.
+        '404':
+          description: Conversa não encontrada.
+        '500':
+          description: Erro interno ao gerar a resposta (ex: falha na API do LLM).
+
+  /messages/{message_id}/feedback:
+    post:
+      tags:
+        - Feedbacks
+      summary: Envia feedback sobre uma mensagem do agente
+      description: Permite que um usuário envie um comentário sobre uma resposta específica do agente. O feedback ficará pendente até ser aprovado ou rejeitado pelo Guardião Cultural.
+      operationId: submitFeedback
+      parameters:
+        - name: message_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - feedback_text
+              properties:
+                feedback_text:
+                  type: string
+                  description: O comentário do usuário sobre a mensagem do agente.
+                  example: "A resposta foi útil, mas poderia mencionar mais exemplos práticos."
+      responses:
+        '201':
+          description: Feedback enviado com sucesso e aguardando moderação.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PendingFeedback'
+        '400':
+          description: Requisição inválida.
+        '404':
+          description: Mensagem não encontrada.
+        '409':
+          description: Já existe um feedback pendente para esta mensagem.
+
+  /feedbacks/pending:
+    get:
+      tags:
+        - Feedbacks
+      summary: Lista todos os feedbacks pendentes de moderação
+      description: Retorna uma lista de feedbacks aguardando aprovação ou rejeição pelo Guardião Cultural.
+      operationId: listPendingFeedbacks
+      responses:
+        '200':
+          description: Lista de feedbacks pendentes.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PendingFeedback'
+
+  /feedbacks/{feedback_id}/approve:
+    post:
+      tags:
+        - Feedbacks
+      summary: Aprova um feedback pendente
+      description: Aprova um feedback e aciona a síntese de um novo Aprendizado a partir do conteúdo do feedback.
+      operationId: approveFeedback
+      parameters:
+        - name: feedback_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Feedback aprovado e aprendizado sintetizado com sucesso.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  feedback:
+                    $ref: '#/components/schemas/PendingFeedback'
+                  learning:
+                    $ref: '#/components/schemas/Learning'
+        '404':
+          description: Feedback não encontrado.
+        '400':
+          description: Feedback já foi processado (não está mais pendente).
+
+  /feedbacks/{feedback_id}/reject:
+    post:
+      tags:
+        - Feedbacks
+      summary: Rejeita um feedback pendente
+      description: Rejeita um feedback sem sintetizar um aprendizado.
+      operationId: rejectFeedback
+      parameters:
+        - name: feedback_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Feedback rejeitado com sucesso.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PendingFeedback'
+        '404':
+          description: Feedback não encontrado.
+        '400':
+          description: Feedback já foi processado (não está mais pendente).
+
+  /agent/instruction:
+    get:
+      tags:
+        - Agente
+      summary: Obtém a Instrução Geral do Agente
+      description: Retorna o prompt de sistema base que define a persona e o comportamento geral do agente.
+      operationId: getAgentInstruction
+      responses:
+        '200':
+          description: Instrução geral do agente.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  instruction:
+                    type: string
+                    description: O conteúdo da instrução geral do agente.
+                  updated_at:
+                    type: string
+                    format: date-time
+                    description: Data e hora da última atualização.
+
+    put:
+      tags:
+        - Agente
+      summary: Atualiza a Instrução Geral do Agente
+      description: Atualiza o prompt de sistema base que define a persona e o comportamento geral do agente.
+      operationId: updateAgentInstruction
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - instruction
+              properties:
+                instruction:
+                  type: string
+                  description: O novo conteúdo da instrução geral do agente.
+                  example: "Você é um conselheiro cultural de uma organização. Seu papel é ajudar colaboradores a refletirem sobre dilemas do dia a dia, sempre baseando suas respostas nos valores e práticas documentadas da organização."
+      responses:
+        '200':
+          description: Instrução atualizada com sucesso.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  instruction:
+                    type: string
+                  updated_at:
+                    type: string
+                    format: date-time
+
+  /learnings:
+    get:
+      tags:
+        - Aprendizados
+      summary: Lista todos os Aprendizados
+      description: Retorna uma lista de todos os aprendizados sintetizados a partir de feedbacks aprovados.
+      operationId: listLearnings
+      responses:
+        '200':
+          description: Lista de aprendizados.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Learning'
+
+components:
+  schemas:
+    Artifact:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Identificador único do artefato.
+        title:
+          type: string
+          description: Título do artefato.
+        source_type:
+          type: string
+          enum: [PDF, TEXT]
+          description: A origem do artefato.
+        created_at:
+          type: string
+          format: date-time
+          description: Data e hora da criação.
+      example:
+        id: "123e4567-e89b-12d3-a456-426614174000"
+        title: "Nosso Guia de Valores"
+        source_type: "PDF"
+        created_at: "2024-01-10T10:00:00Z"
+
+    Message:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        conversation_id:
+          type: string
+          format: uuid
+        author:
+          type: string
+          enum: [USER, AGENT]
+          description: Quem enviou a mensagem.
+        content:
+          type: string
+          description: O conteúdo da mensagem em formato Markdown.
+        cited_sources:
+          type: array
+          description: Uma lista de fontes citadas na resposta do agente.       
+          items:
+            $ref: '#/components/schemas/CitedSource'
+        created_at:
+          type: string
+          format: date-time
+      example:
+        id: "a1b2c3d4-e5f6-g7h8-i9j0-k1l2m3n4o5p6"
+        conversation_id: "789e0123-e45b-67d8-a901-234567890123"
+        author: "AGENT"
+        content: "Ótima pergunta! Baseado no nosso valor de **'Comunicação Transparente'** (Fonte 1), uma boa abordagem seria..."                            
+        cited_sources:
+          - artifact_id: "123e4567-e89b-12d3-a456-426614174000"
+            title: "Nosso Guia de Valores"
+            chunk_content_preview: "A comunicação transparente é a base da nossa confiança..."                                                              
+        created_at: "2024-01-10T10:01:00Z"
+
+    CitedSource:
+      type: object
+      properties:
+        artifact_id:
+          type: string
+          format: uuid
+          description: ID do artefato original de onde a citação foi extraída.                                                                               
+        title:
+          type: string
+          description: Título do artefato original.
+        chunk_content_preview:
+          type: string
+          description: Um pequeno trecho do chunk que foi usado para gerar a resposta.
+
+    PendingFeedback:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Identificador único do feedback.
+        message_id:
+          type: string
+          format: uuid
+          description: ID da mensagem do agente sobre a qual o feedback foi enviado.
+        feedback_text:
+          type: string
+          description: O comentário do usuário.
+        status:
+          type: string
+          enum: [PENDING, APPROVED, REJECTED]
+          description: Status do feedback.
+        created_at:
+          type: string
+          format: date-time
+          description: Data e hora da criação do feedback.
+        message_preview:
+          type: string
+          description: Uma prévia do conteúdo da mensagem do agente para contexto.
+      example:
+        id: "f1e2d3c4-b5a6-9788-7654-321098765432"
+        message_id: "a1b2c3d4-e5f6-g7h8-i9j0-k1l2m3n4o5p6"
+        feedback_text: "A resposta foi útil, mas poderia mencionar mais exemplos práticos."
+        status: "PENDING"
+        created_at: "2024-01-10T11:00:00Z"
+        message_preview: "Ótima pergunta! Baseado no nosso valor de **'Comunicação Transparente'**..."
+
+    Learning:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Identificador único do aprendizado.
+        content:
+          type: string
+          description: O conteúdo sintetizado do aprendizado (insight conciso e reutilizável).
+        source_feedback_id:
+          type: string
+          format: uuid
+          description: ID do feedback que originou este aprendizado.
+        created_at:
+          type: string
+          format: date-time
+          description: Data e hora da criação do aprendizado.
+      example:
+        id: "l1e2a3r4-n5i6-n7g8-s9t0-u1v2w3x4y5z6"
+        content: "Quando possível, incluir exemplos práticos e concretos nas respostas ajuda os colaboradores a aplicarem os conselhos culturais no dia a dia."
+        source_feedback_id: "f1e2d3c4-b5a6-9788-7654-321098765432"
+        created_at: "2024-01-10T12:00:00Z"
+
+    Error:
+      type: object
+      properties:
+        detail:
+          type: string
+          description: Uma mensagem de erro clara para o cliente.
+      example:
+        detail: "Artefato com ID '...' não encontrado."
