@@ -12,6 +12,10 @@
       "destination": "/api/index.py"
     },
     {
+      "source": "/api/:path*",
+      "destination": "/api/index.py"
+    },
+    {
       "source": "/health",
       "destination": "/api/index.py"
     },
@@ -22,6 +26,10 @@
     {
       "source": "/openapi.json",
       "destination": "/api/index.py"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
     }
   ]
 }
