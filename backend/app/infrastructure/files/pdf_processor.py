@@ -1,5 +1,12 @@
-"""Processador de PDFs usando PyMuPDF."""
-import fitz  # PyMuPDF
+"""Processador de PDFs - TEMPORARIAMENTE DESABILITADO.
+
+PyMuPDF foi removido temporariamente porque excede o limite de 250MB
+da Vercel para Serverless Functions.
+
+Para usar PDFs novamente:
+1. Deploy o backend em Railway/Render/Fly.io
+2. Ou reabilite pymupdf no requirements.txt quando mudar de plataforma
+"""
 
 
 class PDFProcessor:
@@ -7,31 +14,21 @@ class PDFProcessor:
     
     def extract_text(self, file_content: bytes) -> str:
         """
-        Extrai texto de um arquivo PDF.
+        TEMPORARIAMENTE DESABILITADO - pymupdf removido por tamanho.
         
         Args:
             file_content: Conteúdo binário do PDF
         
         Returns:
             Texto extraído do PDF
+            
+        Raises:
+            NotImplementedError: Funcionalidade temporariamente desabilitada
         """
-        try:
-            # Abre o PDF a partir do conteúdo em bytes
-            doc = fitz.open(stream=file_content, filetype="pdf")
-            
-            # Extrai texto de todas as páginas
-            text_parts = []
-            for page_num in range(len(doc)):
-                page = doc[page_num]
-                text = page.get_text()
-                text_parts.append(text)
-            
-            doc.close()
-            
-            # Junta todo o texto
-            full_text = "\n\n".join(text_parts)
-            
-            return full_text.strip()
-        except Exception as e:
-            raise ValueError(f"Erro ao processar PDF: {str(e)}")
+        raise NotImplementedError(
+            "Processamento de PDF temporariamente desabilitado. "
+            "PyMuPDF foi removido para reduzir o tamanho da função serverless. "
+            "Use apenas artefatos de TEXTO por enquanto, ou faça deploy do backend "
+            "em Railway/Render para reabilitar PDFs."
+        )
 
