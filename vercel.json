@@ -2,8 +2,7 @@
   "buildCommand": "cd frontend && npm install && npm run build",
   "outputDirectory": "frontend/dist",
   "functions": {
-    "api/**/*.py": {
-      "runtime": "python3.12",
+    "api/index.py": {
       "includeFiles": "backend/**"
     }
   },
