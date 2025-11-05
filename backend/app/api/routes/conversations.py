@@ -6,7 +6,7 @@ from app.domain.shared_kernel import ConversationId, MessageId
 from app.infrastructure.persistence.conversations_repo import ConversationsRepository
 from app.infrastructure.persistence.knowledge_repo import KnowledgeRepository
 from app.infrastructure.persistence.agent_settings_repo import AgentSettingsRepository
-from app.infrastructure.ai.gemini_service import GeminiService
+from app.infrastructure.ai.gemini_service import GeminiService, get_gemini_api_key
 from app.infrastructure.ai.embedding_service import EmbeddingGenerator
 from app.infrastructure.ai.topic_classifier import TopicClassifier
 from app.infrastructure.persistence.topics_repo import TopicsRepository
@@ -18,7 +18,7 @@ from datetime import datetime
 
 router = APIRouter()
 
-# Inicializa serviços
+# Inicializa repositórios
 conversations_repo = ConversationsRepository()
 knowledge_repo = KnowledgeRepository()
 agent_settings_repo = AgentSettingsRepository()
@@ -27,10 +27,6 @@ topics_repo = TopicsRepository()
 # Valida chaves antes de inicializar
 if not GEMINI_API_KEY:
     raise ValueError("GEMINI_API_KEY deve estar configurado no arquivo .env")
-
-gemini_service = GeminiService(GEMINI_API_KEY)
-embedding_generator = EmbeddingGenerator(GEMINI_API_KEY)
-topic_classifier = TopicClassifier(GEMINI_API_KEY)
 
 
 @router.post("/conversations")
@@ -91,6 +87,11 @@ async def post_message(conversation_id: str, payload: CreateMessagePayload):
     # Obtém a instrução do agente
     agent_instruction = await agent_settings_repo.get_instruction()
     
+    # Obtém a chave de API (personalizada ou padrão)
+    api_key = await get_gemini_api_key()
+    gemini_service = GeminiService(api_key)
+    embedding_generator = EmbeddingGenerator(api_key)
+    
     # Continua a conversa (gera resposta do agente)
     updated_conversation = await continue_conversation(
         conversation=conversation,
@@ -128,6 +129,9 @@ async def post_message(conversation_id: str, payload: CreateMessagePayload):
             user_query = user_messages[0].content
             agent_response = agent_messages[0].content
             print(f"[TOPIC] Classificando conversa. Query: {user_query[:100]}...")
+            
+            # Cria o classificador com a chave de API
+            topic_classifier = TopicClassifier(api_key)
             
             try:
                 topic_name = await topic_classifier.classify_conversation(

@@ -531,6 +531,9 @@ function ChatView() {
     conversationId && 
     previousConversationIdRef.current !== null && 
     previousConversationIdRef.current !== conversationId
+  
+  // Detecta se está carregando pela primeira vez (primeira mensagem da conversa)
+  const isInitialLoading = isLoadingMessages && conversationId && displayMessages.length === 0
 
   // Componente de skeleton para mensagens
   const MessageSkeleton = ({ isAgent }: { isAgent: boolean }) => (
@@ -592,29 +595,37 @@ function ChatView() {
         {hasAgentResponse && (conversationTopic?.is_processing || conversationTopic?.topic) && (
           <div className="px-6 pt-4 pb-2 border-b border-border">
             <div className="mx-auto max-w-4xl">
-              <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-muted/50 border border-border">
-                <Tag className="h-4 w-4 text-muted-foreground shrink-0" />
-                {conversationTopic?.is_processing ? (
-                  <div className="flex items-center gap-2">
-                    <Loader2 className="h-3 w-3 text-muted-foreground animate-spin" />
-                    <span className="text-sm text-muted-foreground">Classificando conversa...</span>
-                  </div>
-                ) : conversationTopic?.topic ? (
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs text-muted-foreground">Tópico:</span>
-                    <span className="text-sm font-medium text-foreground">{conversationTopic.topic}</span>
-                  </div>
-                ) : null}
-              </div>
+              {conversationTopic?.is_processing ? (
+                <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-muted/50 border border-border">
+                  <Tag className="h-4 w-4 text-muted-foreground shrink-0" />
+                  <Loader2 className="h-3 w-3 text-muted-foreground animate-spin" />
+                  <span className="text-sm text-muted-foreground">Classificando conversa...</span>
+                </div>
+              ) : conversationTopic?.topic ? (
+                <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-muted/50 border border-border">
+                  <Tag className="h-4 w-4 text-muted-foreground shrink-0" />
+                  <span className="text-xs text-muted-foreground">Tópico:</span>
+                  <span className="text-sm font-medium text-foreground">{conversationTopic.topic}</span>
+                </div>
+              ) : null}
             </div>
           </div>
         )}
 
         <div ref={scrollContainerRef} className="flex-1 overflow-y-auto p-6">
           <div className="mx-auto max-w-4xl space-y-8">
-            {/* Loading Skeletons */}
+            {/* Loading Skeletons - Carregando pela primeira vez */}
+            {isInitialLoading && (
+              <>
+                <MessageSkeleton isAgent={false} />
+                <MessageSkeleton isAgent={true} />
+              </>
+            )}
+
+            {/* Loading Skeletons - Mudando de conversa */}
             {isChangingConversation && (
               <>
+                <MessageSkeleton isAgent={false} />
                 <MessageSkeleton isAgent={true} />
                 <MessageSkeleton isAgent={false} />
                 <MessageSkeleton isAgent={true} />
@@ -622,7 +633,7 @@ function ChatView() {
             )}
 
             {/* Agent's Welcome Message */}
-            {hasWelcomeMessage && !isChangingConversation && (
+            {hasWelcomeMessage && !isChangingConversation && !isInitialLoading && (
               <div className="flex gap-4">
                 <Avatar className="size-10 shrink-0">
                   <AvatarFallback className="bg-gradient-to-br from-blue-500 via-purple-500 to-blue-600 text-white shadow-lg ring-2 ring-blue-400/50">
@@ -666,7 +677,7 @@ function ChatView() {
             )}
 
             {/* Messages */}
-            {!isChangingConversation && displayMessages.map((message) => {
+            {!isChangingConversation && !isInitialLoading && displayMessages.map((message) => {
               const isAgent = message.author === 'AGENT'
               const isPending = message.id === 'pending'
               

@@ -8,6 +8,20 @@ from app.domain.artifacts.types import ArtifactChunk
 from app.domain.learnings.types import Learning
 
 
+async def get_gemini_api_key() -> str:
+    """
+    Retorna a chave de API do Gemini.
+    Prioriza a chave personalizada do usuário, senão usa a padrão do sistema.
+    """
+    from app.infrastructure.persistence.settings_repo import SettingsRepository
+    from app.infrastructure.persistence.config import GEMINI_API_KEY
+    
+    settings_repo = SettingsRepository()
+    custom_key = await settings_repo.get_custom_gemini_api_key()
+    
+    return custom_key if custom_key else GEMINI_API_KEY
+
+
 class RelevantKnowledge:
     """Representa o conhecimento relevante encontrado."""
     def __init__(

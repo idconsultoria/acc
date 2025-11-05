@@ -58,7 +58,8 @@ class FeedbacksRepository:
                 message_id=MessageId(uuid.UUID(row["message_id"])),
                 feedback_text=row["feedback_text"],
                 status=FeedbackStatus[row["status"]],
-                created_at=datetime.fromisoformat(row["created_at"].replace("Z", "+00:00"))
+                created_at=datetime.fromisoformat(row["created_at"].replace("Z", "+00:00")),
+                feedback_type=row.get("feedback_type")
             )
             feedbacks.append(feedback)
         
@@ -75,7 +76,8 @@ class FeedbacksRepository:
                 message_id=MessageId(uuid.UUID(row["message_id"])),
                 feedback_text=row["feedback_text"],
                 status=FeedbackStatus[row["status"]],
-                created_at=datetime.fromisoformat(row["created_at"].replace("Z", "+00:00"))
+                created_at=datetime.fromisoformat(row["created_at"].replace("Z", "+00:00")),
+                feedback_type=row.get("feedback_type")
             )
             feedbacks.append(feedback)
         

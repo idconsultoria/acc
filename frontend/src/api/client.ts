@@ -194,5 +194,15 @@ export const api = {
     const response = await apiClient.get(`/conversations/${conversation_id}/topic`)
     return response.data
   },
+  
+  // Settings
+  getSettings: async (): Promise<{ hasCustomApiKey: boolean }> => {
+    const response = await apiClient.get('/settings')
+    return response.data
+  },
+  
+  saveGeminiApiKey: async (apiKey: string): Promise<void> => {
+    await apiClient.put('/settings/gemini-api-key', { api_key: apiKey })
+  },
 }
 

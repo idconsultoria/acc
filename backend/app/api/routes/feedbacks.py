@@ -8,19 +8,17 @@ from app.infrastructure.persistence.feedbacks_repo import FeedbacksRepository
 from app.infrastructure.persistence.conversations_repo import ConversationsRepository
 from app.infrastructure.persistence.learnings_repo import LearningsRepository
 from app.domain.learnings.workflows import synthesize_learning_from_feedback
-from app.infrastructure.ai.gemini_service import GeminiService
+from app.infrastructure.ai.gemini_service import GeminiService, get_gemini_api_key
 from app.infrastructure.ai.embedding_service import EmbeddingGenerator
 from app.infrastructure.persistence.config import GEMINI_API_KEY
 import uuid
 
 router = APIRouter()
 
-# Inicializa serviços
+# Inicializa repositórios
 feedbacks_repo = FeedbacksRepository()
 conversations_repo = ConversationsRepository()
 learnings_repo = LearningsRepository()
-gemini_service = GeminiService(GEMINI_API_KEY)
-embedding_generator = EmbeddingGenerator(GEMINI_API_KEY)
 
 
 @router.post("/messages/{message_id}/feedback", response_model=PendingFeedbackDTO, status_code=201)
@@ -106,6 +104,11 @@ async def approve_feedback_route(feedback_id: str):
         feedback_id=feedback_id_uuid,
         feedback_repo=feedbacks_repo
     )
+    
+    # Obtém a chave de API (personalizada ou padrão)
+    api_key = await get_gemini_api_key()
+    gemini_service = GeminiService(api_key)
+    embedding_generator = EmbeddingGenerator(api_key)
     
     # Sintetiza um aprendizado
     learning = await synthesize_learning_from_feedback(
