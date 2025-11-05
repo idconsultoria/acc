@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import AdminSidebar from '@/components/shared/AdminSidebar'
-import { cn } from '@/lib/utils'
+import { cn } from '@/lib/utils.ts'
 import ReactMarkdown from 'react-markdown'
 
 function AdminFeedbackView() {

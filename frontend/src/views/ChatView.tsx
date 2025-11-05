@@ -13,7 +13,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Skeleton } from '@/components/ui/skeleton'
 import Sidebar from '@/components/shared/Sidebar'
 import SourceCitation from '@/components/shared/SourceCitation'
-import { cn } from '@/lib/utils'
+import { cn } from '@/lib/utils.ts'
 
 function ChatView() {
   const [searchParams, setSearchParams] = useSearchParams()
