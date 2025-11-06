@@ -1,18 +1,13 @@
 import axios from 'axios'
 
-// Detecta automaticamente a URL da API baseada no ambiente
-// No Vercel, usa URL relativa para a mesma origem
-// Localmente, usa localhost ou a variável de ambiente configurada
+// URL da API no Google Cloud Run
+// Em produção, usa a variável de ambiente VITE_API_BASE_URL
+// Em desenvolvimento, usa localhost
 const getApiBaseUrl = () => {
   // Se VITE_API_BASE_URL estiver definida, usa ela (prioridade)
+  // Esta variável deve conter a URL completa do Cloud Run, ex: https://seu-servico-xxxxx.run.app
   if (import.meta.env.VITE_API_BASE_URL) {
     return import.meta.env.VITE_API_BASE_URL
-  }
-  
-  // Se estiver em produção (Vercel), usa URL relativa
-  // Isso faz com que as requisições sejam feitas para a mesma origem
-  if (import.meta.env.PROD) {
-    return '/api/v1'
   }
   
   // Em desenvolvimento, usa localhost
@@ -26,7 +21,41 @@ export const apiClient = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
+  timeout: 30000, // 30 segundos de timeout para dar tempo do cold start
 })
+
+// Função para verificar o status do backend (health check)
+export const checkBackendStatus = async (): Promise<{ status: 'online' | 'waking' | 'offline', message?: string }> => {
+  try {
+    // Remove /api/v1 do baseURL para fazer o health check na raiz
+    const baseUrl = API_BASE_URL.replace('/api/v1', '')
+    const response = await axios.get(`${baseUrl}/health`, {
+      timeout: 10000, // 10 segundos para health check
+    })
+    
+    if (response.status === 200) {
+      return { status: 'online' }
+    }
+    return { status: 'offline', message: 'Backend não respondeu corretamente' }
+  } catch (error: any) {
+    // Se o erro for de timeout ou conexão, o backend pode estar "dormindo"
+    if (error.code === 'ECONNABORTED' || error.code === 'ETIMEDOUT' || error.message?.includes('timeout')) {
+      return { status: 'waking', message: 'Backend está sendo acordado...' }
+    }
+    
+    // Se for erro de conexão, o backend está offline
+    if (error.code === 'ERR_NETWORK' || error.code === 'ECONNREFUSED') {
+      return { status: 'offline', message: 'Não foi possível conectar ao backend' }
+    }
+    
+    // Outros erros podem indicar que o backend está acordando
+    if (error.response?.status === 503 || error.response?.status === 502) {
+      return { status: 'waking', message: 'Backend está sendo acordado...' }
+    }
+    
+    return { status: 'offline', message: error.message || 'Erro desconhecido' }
+  }
+}
 
 // Types baseados no OpenAPI
 export interface Artifact {

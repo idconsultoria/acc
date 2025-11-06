@@ -9,10 +9,12 @@ import AdminArtifactsView from './views/admin/AdminArtifactsView'
 import AdminFeedbackView from './views/admin/AdminFeedbackView'
 import AdminSettingsView from './views/admin/AdminSettingsView'
 import AdminHelpView from './views/admin/AdminHelpView'
+import { BackendStatusNotification } from './components/shared/BackendStatusNotification'
 
 function App() {
   return (
     <BrowserRouter>
+      <BackendStatusNotification />
       <Routes>
         <Route path="/" element={<ChatView />} />
         <Route path="/chat" element={<ChatView />} />
