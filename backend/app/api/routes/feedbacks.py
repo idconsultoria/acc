@@ -1,6 +1,6 @@
 """Rotas para gerenciamento de Feedbacks."""
 from fastapi import APIRouter, HTTPException
-from app.api.dto import PendingFeedbackDTO, SubmitFeedbackPayload
+from app.api.dto import PendingFeedbackDTO, SubmitFeedbackPayload, BatchFeedbackRequestDTO
 from app.domain.feedbacks.workflows import submit_feedback, approve_feedback, reject_feedback
 from app.domain.feedbacks.types import FeedbackStatus
 from app.domain.shared_kernel import FeedbackId, MessageId
@@ -286,3 +286,36 @@ async def delete_feedback_route(feedback_id: str):
     await feedbacks_repo.delete(feedback_id_uuid)
     
     return None
+
+
+@router.post("/messages/feedbacks/batch")
+async def get_feedbacks_by_message_ids(payload: BatchFeedbackRequestDTO):
+    """
+    Busca feedbacks para múltiplas mensagens de uma vez.
+    Retorna um dicionário mapeando message_id para feedback (ou null se não houver).
+    """
+    try:
+        message_id_uuids = [MessageId(uuid.UUID(msg_id)) for msg_id in payload.message_ids]
+    except ValueError:
+        raise HTTPException(status_code=400, detail="IDs inválidos")
+    
+    feedbacks_dict = await feedbacks_repo.find_by_message_ids(message_id_uuids)
+    
+    # Converte para formato de resposta: dicionário com message_id (string) -> feedback ou null
+    result = {}
+    for msg_id in payload.message_ids:
+        feedback = feedbacks_dict.get(msg_id)
+        if feedback:
+            result[msg_id] = PendingFeedbackDTO(
+                id=feedback.id,
+                message_id=feedback.message_id,
+                feedback_text=feedback.feedback_text,
+                status=feedback.status.name,
+                created_at=feedback.created_at,
+                message_preview=None,
+                feedback_type=feedback.feedback_type
+            )
+        else:
+            result[msg_id] = None
+    
+    return result

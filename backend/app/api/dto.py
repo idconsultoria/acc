@@ -109,6 +109,11 @@ class ConversationTopicDTO(BaseModel):
     is_processing: bool = False
 
 
+class BatchFeedbackRequestDTO(BaseModel):
+    """DTO para requisição de feedbacks em batch."""
+    message_ids: list[str]
+
+
 class ErrorDTO(BaseModel):
     """DTO para Erro."""
     detail: str

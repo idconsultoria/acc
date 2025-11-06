@@ -23,8 +23,9 @@ function HistoryView() {
   } = useQuery({
     queryKey: ['topics'],
     queryFn: api.listTopics,
-    staleTime: 1000 * 30, // 30 segundos - dados permanecem válidos por pouco tempo
-    refetchOnMount: 'always', // Sempre refaz a busca ao montar
+    staleTime: 1000 * 60 * 5, // 5 minutos - dados permanecem válidos por mais tempo
+    refetchOnMount: false, // Não refaz a busca automaticamente ao montar se os dados estão frescos
+    refetchOnWindowFocus: true, // Apenas refaz quando a janela recebe foco
     placeholderData: (previousData) => previousData, // Mantém dados anteriores enquanto busca
   })
 
@@ -36,8 +37,9 @@ function HistoryView() {
   } = useQuery({
     queryKey: ['conversations', selectedTopicId],
     queryFn: () => api.getConversationsByTopic(selectedTopicId || undefined),
-    staleTime: 1000 * 30, // 30 segundos - dados permanecem válidos por pouco tempo
-    refetchOnMount: 'always', // Sempre refaz a busca ao montar
+    staleTime: 1000 * 60 * 2, // 2 minutos - dados permanecem válidos
+    refetchOnMount: false, // Não refaz a busca automaticamente ao montar se os dados estão frescos
+    refetchOnWindowFocus: true, // Apenas refaz quando a janela recebe foco
     placeholderData: (previousData) => previousData, // Mantém dados anteriores enquanto busca
   })
 

@@ -220,6 +220,11 @@ export const api = {
   deleteFeedback: async (feedback_id: string): Promise<void> => {
     await apiClient.delete(`/feedbacks/${feedback_id}`)
   },
+
+  getFeedbacksByMessageIds: async (message_ids: string[]): Promise<Record<string, PendingFeedback | null>> => {
+    const response = await apiClient.post('/messages/feedbacks/batch', { message_ids })
+    return response.data
+  },
   
   // Learnings
   listLearnings: async (): Promise<Learning[]> => {

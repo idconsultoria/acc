@@ -28,8 +28,9 @@ function SourcesView() {
   } = useQuery({
     queryKey: ['artifacts'],
     queryFn: api.listArtifacts,
-    staleTime: 1000 * 30,
-    refetchOnMount: 'always',
+    staleTime: 1000 * 60 * 5, // 5 minutos - artefatos mudam raramente
+    refetchOnMount: false, // Não refaz automaticamente se dados estão frescos
+    refetchOnWindowFocus: true, // Apenas refaz quando a janela recebe foco
     placeholderData: (previousData) => previousData,
   })
 

@@ -130,4 +130,55 @@ class FeedbacksRepository:
         self.supabase.table("pending_feedbacks").update({"status": status.name}).eq("id", str(feedback_id)).execute()
         
         return await self.find_by_id(feedback_id)
+    
+    async def find_by_message_ids(self, message_ids: list[MessageId]) -> dict[str, PendingFeedback]:
+        """
+        Busca feedbacks por múltiplos message_ids de uma vez.
+        Retorna um dicionário mapeando message_id (string) para PendingFeedback.
+        """
+        if not message_ids:
+            return {}
+        
+        try:
+            # Converte MessageIds para strings
+            message_id_strings = [str(msg_id) for msg_id in message_ids]
+            
+            # Busca todos os feedbacks de uma vez usando in_
+            # Nota: Supabase pode ter limites no número de itens no in_, então pode precisar fazer em batches
+            result = self.supabase.table("pending_feedbacks").select("*").in_("message_id", message_id_strings).execute()
+            
+            # Cria dicionário de feedbacks por message_id
+            feedbacks_dict = {}
+            
+            # Agrupa por message_id e pega apenas o mais recente de cada um
+            for row in result.data:
+                message_id_str = row["message_id"]
+                
+                # Se já existe um feedback para este message_id, verifica qual é mais recente
+                if message_id_str not in feedbacks_dict:
+                    feedbacks_dict[message_id_str] = PendingFeedback(
+                        id=FeedbackId(uuid.UUID(row["id"])),
+                        message_id=MessageId(uuid.UUID(row["message_id"])),
+                        feedback_text=row["feedback_text"],
+                        status=FeedbackStatus[row["status"]],
+                        created_at=datetime.fromisoformat(row["created_at"].replace("Z", "+00:00")),
+                        feedback_type=row.get("feedback_type")
+                    )
+                else:
+                    # Compara datas e mantém o mais recente
+                    existing_date = feedbacks_dict[message_id_str].created_at
+                    current_date = datetime.fromisoformat(row["created_at"].replace("Z", "+00:00"))
+                    if current_date > existing_date:
+                        feedbacks_dict[message_id_str] = PendingFeedback(
+                            id=FeedbackId(uuid.UUID(row["id"])),
+                            message_id=MessageId(uuid.UUID(row["message_id"])),
+                            feedback_text=row["feedback_text"],
+                            status=FeedbackStatus[row["status"]],
+                            created_at=current_date,
+                            feedback_type=row.get("feedback_type")
+                        )
+            
+            return feedbacks_dict
+        except Exception:
+            return {}
 

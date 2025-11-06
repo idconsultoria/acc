@@ -81,25 +81,30 @@ class ConversationsRepository:
     
     async def find_by_topic(self, topic_id: TopicId | None) -> list[Conversation]:
         """Busca conversas por tópico (None para todas)."""
+        # Otimizado: busca apenas IDs das conversas, não carrega todas as mensagens
+        # Isso é usado apenas para contar conversas, então não precisamos das mensagens completas
         if not self.supabase:
             return []
         
         try:
-            query = self.supabase.table("conversations").select("*")
+            query = self.supabase.table("conversations").select("id, created_at")
             if topic_id is not None:
                 query = query.eq("topic_id", str(topic_id))
-            # Se topic_id é None, busca todas as conversas (não filtra)
             query = query.order("created_at", desc=True)
             
             result = query.execute()
             
+            # Cria objetos Conversation mínimos (sem mensagens) apenas para contar
             conversations = []
             for row in result.data:
-                # Busca mensagens para cada conversa
                 conv_id = ConversationId(uuid.UUID(row["id"]))
-                conversation = await self.find_by_id(conv_id)
-                if conversation:
-                    conversations.append(conversation)
+                created_at = datetime.fromisoformat(row["created_at"].replace("Z", "+00:00"))
+                conversation = Conversation(
+                    id=conv_id,
+                    messages=[],  # Não carrega mensagens para contagem
+                    created_at=created_at
+                )
+                conversations.append(conversation)
             
             return conversations
         except Exception:
@@ -142,36 +147,59 @@ class ConversationsRepository:
         if not messages_result.data:
             messages_result.data = []
         
-        for msg_row in messages_result.data:
+        # Otimização: coleta todos os chunk_ids de todas as mensagens primeiro
+        all_chunk_ids = []
+        chunk_id_to_message_index = {}  # Mapeia chunk_id -> lista de índices de mensagens
+        
+        for idx, msg_row in enumerate(messages_result.data):
+            if msg_row.get("cited_artifact_chunk_ids"):
+                for chunk_id in msg_row["cited_artifact_chunk_ids"]:
+                    if chunk_id not in chunk_id_to_message_index:
+                        chunk_id_to_message_index[chunk_id] = []
+                        all_chunk_ids.append(chunk_id)
+                    chunk_id_to_message_index[chunk_id].append(idx)
+        
+        # Busca todos os chunks de uma vez
+        chunks_data = {}
+        if all_chunk_ids:
+            try:
+                # Busca chunks com join em artifacts de uma vez
+                # Supabase não suporta IN() direto, então fazemos queries em batch
+                # ou uma query por chunk (ainda melhor que N queries por mensagem)
+                for chunk_id in all_chunk_ids:
+                    try:
+                        chunk_result = self.supabase.table("artifact_chunks").select("id, artifact_id, content, artifacts(title)").eq("id", chunk_id).limit(1).execute()
+                        if chunk_result.data:
+                            chunks_data[chunk_id] = chunk_result.data[0]
+                    except Exception:
+                        pass
+            except Exception:
+                pass
+        
+        # Agora processa as mensagens usando os chunks já carregados
+        for idx, msg_row in enumerate(messages_result.data):
             # Converte cited_artifact_chunk_ids para CitedSource
             cited_sources = []
             
-            # Busca informações dos chunks citados
+            # Busca informações dos chunks citados do cache
             if msg_row.get("cited_artifact_chunk_ids"):
                 for chunk_id in msg_row["cited_artifact_chunk_ids"]:
-                    # Busca o chunk e o artefato
-                    try:
-                        chunk_result = self.supabase.table("artifact_chunks").select("*, artifacts!inner(title)").eq("id", chunk_id).execute()
-                        
-                        if chunk_result.data:
-                            chunk_data = chunk_result.data[0]
-                            # O Supabase retorna o join de forma diferente
-                            if isinstance(chunk_data.get("artifacts"), dict):
+                    chunk_data = chunks_data.get(chunk_id)
+                    if chunk_data:
+                        # Extrai título do artefato
+                        artifact_title = ""
+                        if chunk_data.get("artifacts"):
+                            if isinstance(chunk_data["artifacts"], dict):
                                 artifact_title = chunk_data["artifacts"].get("title", "")
-                            elif isinstance(chunk_data.get("artifacts"), list) and chunk_data["artifacts"]:
+                            elif isinstance(chunk_data["artifacts"], list) and chunk_data["artifacts"]:
                                 artifact_title = chunk_data["artifacts"][0].get("title", "")
-                            else:
-                                artifact_title = ""
-                            
-                            cited_source = CitedSource(
-                                artifact_id=ArtifactId(uuid.UUID(chunk_data["artifact_id"])),
-                                title=artifact_title,
-                                chunk_content_preview=chunk_data.get("content", "")[:200]
-                            )
-                            cited_sources.append(cited_source)
-                    except Exception as e:
-                        # Se não conseguir buscar o chunk, continua sem a citação
-                        pass
+                        
+                        cited_source = CitedSource(
+                            artifact_id=ArtifactId(uuid.UUID(chunk_data["artifact_id"])),
+                            title=artifact_title,
+                            chunk_content_preview=chunk_data.get("content", "")[:200]
+                        )
+                        cited_sources.append(cited_source)
             
             author = Author.USER if msg_row["author"] == "USER" else Author.AGENT
             

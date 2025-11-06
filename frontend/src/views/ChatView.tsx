@@ -96,7 +96,9 @@ function ChatView() {
     queryKey: ['conversation', conversationId],
     queryFn: () => conversationId ? api.getConversationMessages(conversationId) : Promise.resolve([]),
     enabled: !!conversationId,
-    refetchInterval: sendMessageMutation.isPending ? 1000 : false,
+    staleTime: 1000 * 10, // 10 segundos - mensagens podem mudar frequentemente
+    refetchInterval: sendMessageMutation.isPending ? 3000 : false, // Reduzido para 3 segundos ao invés de 1
+    refetchOnMount: false, // Não refaz automaticamente se dados estão frescos
   })
 
   // Atualiza o ref quando as mensagens são carregadas ou na primeira montagem
@@ -112,52 +114,59 @@ function ChatView() {
     }
   }, [isLoadingMessages, conversationId])
 
-  // Busca feedbacks existentes para as mensagens do agente
+  // Busca feedbacks existentes para as mensagens do agente (otimizado: busca em batch)
   useEffect(() => {
     const agentMessages = messages.filter(msg => msg.author === 'AGENT')
     const fetchFeedbacks = async () => {
       const messagesToFetch = agentMessages.filter(msg => !detailedFeedbacks[msg.id] && !messageFeedbacks[msg.id])
       
+      // Se não há mensagens para buscar, não faz nada
+      if (messagesToFetch.length === 0) {
+        return
+      }
+      
       // Marca mensagens como inicializando
-      if (messagesToFetch.length > 0) {
+      setInitializingFeedbacks(prev => {
+        const newSet = new Set(prev)
+        messagesToFetch.forEach(msg => newSet.add(msg.id))
+        return newSet
+      })
+      
+      try {
+        // Busca feedbacks em batch ao invés de individualmente
+        const messageIds = messagesToFetch.map(msg => msg.id)
+        const feedbacksBatch = await api.getFeedbacksByMessageIds(messageIds)
+        
+        // Processa os resultados
+        Object.entries(feedbacksBatch).forEach(([messageId, feedback]) => {
+          if (feedback) {
+            if (feedback.feedback_type === 'POSITIVE' || feedback.feedback_type === 'NEGATIVE') {
+              setMessageFeedbacks(prev => {
+                if (prev[messageId]) return prev
+                return { ...prev, [messageId]: feedback.feedback_type as 'POSITIVE' | 'NEGATIVE' }
+              })
+            } else {
+              setDetailedFeedbacks(prev => {
+                if (prev[messageId]) return prev
+                return { ...prev, [messageId]: feedback.id }
+              })
+            }
+          }
+          // Remove da lista de inicialização
+          setInitializingFeedbacks(prev => {
+            const newSet = new Set(prev)
+            newSet.delete(messageId)
+            return newSet
+          })
+        })
+      } catch (error) {
+        // Em caso de erro, remove todas as mensagens da lista de inicialização
         setInitializingFeedbacks(prev => {
           const newSet = new Set(prev)
-          messagesToFetch.forEach(msg => newSet.add(msg.id))
+          messagesToFetch.forEach(msg => newSet.delete(msg.id))
           return newSet
         })
       }
-      
-      const feedbackPromises = messagesToFetch.map(async (msg) => {
-        try {
-          const feedback = await api.getFeedbackByMessageId(msg.id)
-          return { messageId: msg.id, feedback }
-        } catch (error) {
-          return { messageId: msg.id, feedback: null }
-        }
-      })
-      
-      const results = await Promise.all(feedbackPromises)
-      results.forEach(({ messageId, feedback }) => {
-        if (feedback) {
-          if (feedback.feedback_type === 'POSITIVE' || feedback.feedback_type === 'NEGATIVE') {
-            setMessageFeedbacks(prev => {
-              if (prev[messageId]) return prev
-              return { ...prev, [messageId]: feedback.feedback_type as 'POSITIVE' | 'NEGATIVE' }
-            })
-          } else {
-            setDetailedFeedbacks(prev => {
-              if (prev[messageId]) return prev
-              return { ...prev, [messageId]: feedback.id }
-            })
-          }
-        }
-        // Remove da lista de inicialização
-        setInitializingFeedbacks(prev => {
-          const newSet = new Set(prev)
-          newSet.delete(messageId)
-          return newSet
-        })
-      })
     }
     
     if (agentMessages.length > 0) {
@@ -173,10 +182,11 @@ function ChatView() {
     queryKey: ['conversation-topic', conversationId],
     queryFn: () => conversationId ? api.getConversationTopic(conversationId) : Promise.resolve({ topic: null, is_processing: false }),
     enabled: !!conversationId && hasAgentResponse,
+    staleTime: 1000 * 30, // 30 segundos quando não está processando
     refetchInterval: (query) => {
-      // Refaz a busca enquanto estiver processando
+      // Refaz a busca enquanto estiver processando (aumentado para 3 segundos)
       const data = query.state?.data
-      return data?.is_processing ? 2000 : false
+      return data?.is_processing ? 3000 : false
     },
   })
 
