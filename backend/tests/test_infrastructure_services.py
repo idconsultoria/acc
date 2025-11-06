@@ -150,28 +150,30 @@ class TestGetGeminiApiKey:
     """Testes para get_gemini_api_key."""
     
     @pytest.mark.asyncio
-    @patch('app.infrastructure.ai.gemini_service.SettingsRepository')
-    @patch('app.infrastructure.ai.gemini_service.GEMINI_API_KEY', 'default-key')
+    @patch('app.infrastructure.persistence.settings_repo.SettingsRepository')
     async def test_get_custom_api_key(self, mock_settings_repo_class):
         """Testa obtenção de chave de API personalizada."""
         mock_settings_repo = AsyncMock()
         mock_settings_repo.get_custom_gemini_api_key = AsyncMock(return_value="custom-key")
         mock_settings_repo_class.return_value = mock_settings_repo
         
-        result = await get_gemini_api_key()
+        # Mock do GEMINI_API_KEY
+        with patch('app.infrastructure.persistence.config.GEMINI_API_KEY', 'default-key'):
+            result = await get_gemini_api_key()
         
         assert result == "custom-key"
     
     @pytest.mark.asyncio
-    @patch('app.infrastructure.ai.gemini_service.SettingsRepository')
-    @patch('app.infrastructure.ai.gemini_service.GEMINI_API_KEY', 'default-key')
+    @patch('app.infrastructure.persistence.settings_repo.SettingsRepository')
     async def test_get_default_api_key(self, mock_settings_repo_class):
         """Testa obtenção de chave de API padrão."""
         mock_settings_repo = AsyncMock()
         mock_settings_repo.get_custom_gemini_api_key = AsyncMock(return_value=None)
         mock_settings_repo_class.return_value = mock_settings_repo
         
-        result = await get_gemini_api_key()
+        # Mock do GEMINI_API_KEY
+        with patch('app.infrastructure.persistence.config.GEMINI_API_KEY', 'default-key'):
+            result = await get_gemini_api_key()
         
         assert result == "default-key"
 

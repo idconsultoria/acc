@@ -1,8 +1,15 @@
 """Configuração compartilhada para testes."""
 import pytest
+import os
 from unittest.mock import Mock, AsyncMock
 from datetime import datetime
 import uuid
+
+# Configura variáveis de ambiente antes de qualquer importação
+os.environ.setdefault('SUPABASE_URL', 'http://test.supabase.co')
+os.environ.setdefault('SUPABASE_KEY', 'test-key-1234567890123456789012345678901234567890')
+os.environ.setdefault('SUPABASE_SERVICE_ROLE_KEY', 'test-service-key-1234567890123456789012345678901234567890')
+os.environ.setdefault('GEMINI_API_KEY', 'test-gemini-key')
 from app.domain.shared_kernel import (
     ArtifactId, ConversationId, MessageId, ChunkId, 
     FeedbackId, LearningId, TopicId, Embedding

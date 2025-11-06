@@ -323,14 +323,24 @@ class TestFeedbacksRepository:
         mock_update = Mock()
         mock_table.update.return_value = mock_update
         mock_update.eq.return_value = mock_update
-        mock_update.execute.return_value = Mock(data=[{
+        
+        # Mock do resultado da query - precisa buscar após update
+        mock_result = Mock()
+        mock_result.data = [{
             "id": str(feedback_id),
             "message_id": str(message_id),
             "feedback_text": "Feedback",
             "status": "APPROVED",
             "created_at": datetime.utcnow().isoformat(),
             "feedback_type": None
-        }])
+        }]
+        mock_update.execute.return_value = mock_result
+        
+        # Mock do select após update
+        mock_select = Mock()
+        mock_table.select.return_value = mock_select
+        mock_select.eq.return_value = mock_select
+        mock_select.execute.return_value = mock_result
         
         mock_supabase.table.return_value = mock_table
         mock_create_client.return_value = mock_supabase
@@ -359,10 +369,14 @@ class TestAgentSettingsRepository:
         mock_table.select.return_value = mock_select
         mock_select.order.return_value = mock_select
         mock_select.limit.return_value = mock_select
-        mock_select.execute.return_value = Mock(data=[{
-            "content": "Instrução de teste",
+        
+        # Mock do resultado da query
+        mock_result = Mock()
+        mock_result.data = [{
+            "instruction": "Instrução de teste",
             "updated_at": datetime.utcnow().isoformat()
-        }])
+        }]
+        mock_select.execute.return_value = mock_result
         
         mock_supabase.table.return_value = mock_table
         mock_create_client.return_value = mock_supabase
@@ -385,10 +399,26 @@ class TestAgentSettingsRepository:
         mock_table = Mock()
         mock_upsert = Mock()
         mock_table.upsert.return_value = mock_upsert
-        mock_upsert.execute.return_value = Mock(data=[{
-            "content": "Nova instrução",
+        
+        # Mock do resultado da query - primeiro select verifica se existe
+        mock_result_select = Mock()
+        mock_result_select.data = [{
+            "id": "test-id",
+            "instruction": "Instrução antiga",
             "updated_at": datetime.utcnow().isoformat()
-        }])
+        }]
+        
+        # Mock do select após upsert
+        mock_select = Mock()
+        mock_table.select.return_value = mock_select
+        mock_select.limit.return_value = mock_select
+        mock_select.execute.return_value = mock_result_select
+        
+        # Mock do update
+        mock_update = Mock()
+        mock_table.update.return_value = mock_update
+        mock_update.eq.return_value = mock_update
+        mock_update.execute.return_value = Mock()
         
         mock_supabase.table.return_value = mock_table
         mock_create_client.return_value = mock_supabase
