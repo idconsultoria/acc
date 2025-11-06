@@ -1,0 +1,92 @@
+# ============================================
+# .vercelignore
+# Ignora tudo relacionado ao backend
+# O Vercel deve buildar APENAS o frontend
+# ============================================
+
+# ============================================
+# BACKEND (está no Cloud Run, não no Vercel)
+# ============================================
+backend/
+api/
+
+# ============================================
+# PYTHON (não necessário para frontend)
+# ============================================
+*.py
+*.pyc
+*.pyo
+*.pyd
+__pycache__/
+*.so
+*.egg
+*.egg-info/
+requirements.txt
+venv/
+.venv/
+env/
+ENV/
+.python-version
+Pipfile
+Pipfile.lock
+
+# ============================================
+# BANCO DE DADOS
+# ============================================
+*.db
+*.sqlite
+*.sqlite3
+*.sql
+database/
+migrations/
+schema.sql
+migration_*.sql
+
+# ============================================
+# DOCUMENTAÇÃO (não precisa no deploy)
+# ============================================
+design/
+
+
+
+# ============================================
+# AMBIENTE DE DESENVOLVIMENTO
+# ============================================
+.env
+.env.local
+.env.*.local
+
+# IDEs
+.idea/
+.vscode/
+*.iml
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# ============================================
+# BUILDS E CACHE (exceto frontend/dist)
+# ============================================
+.cache/
+.pytest_cache/
+__pycache__/
+*.py[cod]
+
+# ============================================
+# Git
+# ============================================
+.git/
+.gitignore
+
+# ============================================
+# NOTA: O frontend/ NÃO está ignorado
+# O Vercel vai buildar apenas o conteúdo de frontend/
+# ============================================
+
