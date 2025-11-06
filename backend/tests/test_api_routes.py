@@ -366,9 +366,15 @@ class TestFeedbacksRoutes:
         assert isinstance(data, list)
     
     @pytest.mark.asyncio
+    @patch('app.api.routes.feedbacks.synthesize_learning_from_feedback')
+    @patch('app.api.routes.feedbacks.get_gemini_api_key')
     @patch('app.api.routes.feedbacks.feedbacks_repo')
-    async def test_approve_feedback(self, mock_repo, client):
+    async def test_approve_feedback(self, mock_feedback_repo, mock_get_api_key, mock_synthesize, client):
         """Testa aprovação de feedback."""
+        from app.domain.shared_kernel import LearningId
+        from app.domain.learnings.types import Learning
+        from app.domain.shared_kernel import Embedding
+        
         feedback_id = FeedbackId(uuid.uuid4())
         message_id = MessageId(uuid.uuid4())
         
@@ -388,8 +394,18 @@ class TestFeedbacksRoutes:
             created_at=datetime.utcnow()
         )
         
-        mock_repo.find_by_id = AsyncMock(return_value=feedback)
-        mock_repo.update_status = AsyncMock(return_value=approved_feedback)
+        learning = Learning(
+            id=LearningId(uuid.uuid4()),
+            content="Aprendizado sintetizado",
+            embedding=Embedding(vector=[0.1] * 100),
+            source_feedback_id=feedback_id,
+            created_at=datetime.utcnow()
+        )
+        
+        mock_feedback_repo.find_by_id = AsyncMock(return_value=feedback)
+        mock_feedback_repo.update_status = AsyncMock(return_value=approved_feedback)
+        mock_get_api_key.return_value = "test-key"
+        mock_synthesize.return_value = learning
         
         response = client.post(f"/api/v1/feedbacks/{feedback_id}/approve")
         # Pode retornar 200 ou 500 se não tiver configuração de LLM
@@ -415,12 +431,38 @@ class TestTopicsRoutes:
     """Testes para rotas de tópicos."""
     
     @pytest.mark.asyncio
-    @patch('app.api.routes.topics.topics_repo')
-    async def test_list_topics(self, mock_repo, client):
+    @patch('app.api.routes.topics.create_client')
+    async def test_list_topics(self, mock_create_client, client):
         """Testa listagem de tópicos."""
-        response = client.get("/api/v1/topics")
-        # Pode retornar 200 ou 500 se não tiver configuração
-        assert response.status_code in [200, 500]
+        # Mock do Supabase
+        mock_supabase = Mock()
+        mock_table = Mock()
+        mock_select = Mock()
+        mock_table.select.return_value = mock_select
+        mock_select.order.return_value = mock_select
+        mock_select.execute.return_value = Mock(data=[])
+        
+        mock_conv_table = Mock()
+        mock_conv_select = Mock()
+        mock_conv_table.select.return_value = mock_conv_select
+        mock_conv_select.execute.return_value = Mock(data=[])
+        
+        def table_side_effect(table_name):
+            if table_name == "topics":
+                return mock_table
+            elif table_name == "conversations":
+                return mock_conv_table
+            return Mock()
+        
+        mock_supabase.table.side_effect = table_side_effect
+        mock_create_client.return_value = mock_supabase
+        
+        # Mock das variáveis de ambiente
+        with patch('app.api.routes.topics.SUPABASE_URL', 'http://test.supabase.co'), \
+             patch('app.api.routes.topics.SUPABASE_KEY', 'test-key'):
+            response = client.get("/api/v1/topics")
+            # Pode retornar 200 ou 500 se não tiver configuração
+            assert response.status_code in [200, 500]
     
     @pytest.mark.asyncio
     async def test_get_conversations_all(self, client):
