@@ -8,7 +8,6 @@
 # BACKEND (está no Cloud Run, não no Vercel)
 # ============================================
 backend/
-api/
 
 # ============================================
 # PYTHON (não necessário para frontend)
