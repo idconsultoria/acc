@@ -44,8 +44,16 @@ try:
     print(f"✓ Routes count: {len(app.routes)}")
     print("=" * 60)
     
-    # Para Vercel Serverless
-    handler = app
+    # Para Vercel Serverless Functions Python, precisamos usar Mangum
+    # Mangum adapta FastAPI (ASGI) para o formato Lambda/API Gateway que o Vercel usa
+    try:
+        from mangum import Mangum
+        handler = Mangum(app, lifespan="off")
+        print("✓ Using Mangum adapter for Vercel")
+    except ImportError:
+        # Fallback: tenta usar app diretamente (pode não funcionar em todos os casos)
+        print("⚠ Mangum not found, using app directly (may not work)")
+        handler = app
     
 except ImportError as e:
     print(f"✗ IMPORT ERROR: {e}")
