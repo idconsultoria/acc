@@ -43,7 +43,7 @@ REGRAS IMPORTANTES:
 1. PRIMEIRO, verifique se algum dos tópicos existentes abaixo se aplica à conversa. Sempre priorize usar um tópico existente.
 2. Se nenhum tópico existente se aplicar, retorne APENAS o nome do novo tópico (em português, curto e descritivo).
 3. Retorne APENAS o nome do tópico, nada mais. Sem explicações, sem pontuação extra, apenas o nome.
-4. Evite nomes de tópicos genéricos preferindo nomes mais específicos. Alguns exemplos seriam "Feedbacks", "Sentimentos de Inadequação", "Progressão de Carreira", "Conflitos com Pares", "Conflitos com Líderes", "Conflitos com Liderados", etc.
+4. Evite nomes de tópicos genéricos preferindo nomes mais específicos. Nenhum tópico deve mencionar "Cultura" em seu nome já que todos as conversas tratarão desse tema. Alguns exemplos seriam "Feedbacks", "Sentimentos de Inadequação", "Progressão de Carreira", "Conflitos com Pares", "Conflitos com Líderes", "Conflitos com Liderados", etc.
 
 TÓPICOS EXISTENTES:
 {topics_list}
