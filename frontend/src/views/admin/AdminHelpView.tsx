@@ -66,31 +66,31 @@ function AdminHelpView() {
     <div className="flex h-screen w-full">
       <AdminSidebar />
 
-      <main className="flex-1 flex flex-col h-screen overflow-hidden">
+      <main className="flex-1 flex flex-col h-screen overflow-hidden md:ml-0">
         <div className="flex-1 overflow-y-auto">
-          <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-10 py-8">
+          <div className="mx-auto max-w-5xl px-3 md:px-4 sm:px-6 lg:px-10 py-4 md:py-8 pt-16 md:pt-8">
             <section>
-              <div className="flex flex-wrap justify-between gap-4 items-center mb-8">
+              <div className="flex flex-wrap justify-between gap-4 items-center mb-6 md:mb-8">
                 <div>
-                  <h1 className="text-3xl sm:text-4xl font-black leading-tight tracking-tight text-foreground">
+                  <h1 className="text-2xl md:text-3xl sm:text-4xl font-black leading-tight tracking-tight text-foreground">
                     Ajuda e Suporte
                   </h1>
-                  <p className="text-muted-foreground text-base mt-2">
+                  <p className="text-muted-foreground text-sm md:text-base mt-2">
                     Recursos e documentação para ajudá-lo a aproveitar ao máximo o sistema
                   </p>
                 </div>
               </div>
 
-              <div className="space-y-6">
+              <div className="space-y-4 md:space-y-6">
                 {/* Início Rápido */}
-                <Card className="p-6 border-2 border-primary/20 bg-primary/5">
-                  <div className="flex items-start gap-4">
-                    <div className="p-3 rounded-lg bg-primary text-primary-foreground">
-                      <Info className="h-5 w-5" />
+                <Card className="p-4 md:p-6 border-2 border-primary/20 bg-primary/5">
+                  <div className="flex items-start gap-3 md:gap-4">
+                    <div className="p-2 md:p-3 rounded-lg bg-primary text-primary-foreground shrink-0">
+                      <Info className="h-4 w-4 md:h-5 md:w-5" />
                     </div>
                     <div className="flex-1">
-                      <h2 className="text-xl font-bold text-foreground mb-2">Bem-vindo ao Guardião Cultural</h2>
-                      <p className="text-sm text-muted-foreground mb-4">
+                      <h2 className="text-lg md:text-xl font-bold text-foreground mb-2">Bem-vindo ao Guardião Cultural</h2>
+                      <p className="text-xs md:text-sm text-muted-foreground mb-4">
                         Este painel permite gerenciar artefatos culturais, revisar feedbacks dos usuários e configurar 
                         o comportamento do agente de IA. Use o menu lateral para navegar entre as diferentes seções.
                       </p>
@@ -110,24 +110,24 @@ function AdminHelpView() {
 
                 {/* FAQ */}
                 <div>
-                  <div className="flex items-center gap-3 mb-4">
-                    <div className="p-2 rounded-lg bg-primary/10 text-primary">
-                      <HelpCircle className="h-5 w-5" />
+                  <div className="flex items-center gap-2 md:gap-3 mb-3 md:mb-4">
+                    <div className="p-2 rounded-lg bg-primary/10 text-primary shrink-0">
+                      <HelpCircle className="h-4 w-4 md:h-5 md:w-5" />
                     </div>
-                    <h2 className="text-2xl font-bold text-foreground">Perguntas Frequentes</h2>
+                    <h2 className="text-xl md:text-2xl font-bold text-foreground">Perguntas Frequentes</h2>
                   </div>
                   
-                  <Accordion type="single" collapsible className="space-y-3">
+                  <Accordion type="single" collapsible className="space-y-2 md:space-y-3">
                     {faqs.map((faq, index) => (
                       <AccordionItem 
                         key={index} 
                         value={`item-${index}`}
-                        className="border rounded-lg px-4 bg-card"
+                        className="border rounded-lg px-3 md:px-4 bg-card"
                       >
-                        <AccordionTrigger className="hover:no-underline">
+                        <AccordionTrigger className="hover:no-underline text-sm md:text-base">
                           <span className="font-medium text-foreground text-left">{faq.question}</span>
                         </AccordionTrigger>
-                        <AccordionContent className="text-sm text-muted-foreground">
+                        <AccordionContent className="text-xs md:text-sm text-muted-foreground">
                           {faq.answer}
                         </AccordionContent>
                       </AccordionItem>
@@ -137,14 +137,14 @@ function AdminHelpView() {
 
                 {/* Links Rápidos */}
                 <div>
-                  <div className="flex items-center gap-3 mb-4">
-                    <div className="p-2 rounded-lg bg-primary/10 text-primary">
-                      <ExternalLink className="h-5 w-5" />
+                  <div className="flex items-center gap-2 md:gap-3 mb-3 md:mb-4">
+                    <div className="p-2 rounded-lg bg-primary/10 text-primary shrink-0">
+                      <ExternalLink className="h-4 w-4 md:h-5 md:w-5" />
                     </div>
-                    <h2 className="text-2xl font-bold text-foreground">Links Úteis</h2>
+                    <h2 className="text-xl md:text-2xl font-bold text-foreground">Links Úteis</h2>
                   </div>
                   
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 md:gap-4">
                     {quickLinks.map((link, index) => {
                       const Icon = link.icon
                       return (
@@ -174,22 +174,22 @@ function AdminHelpView() {
                 </div>
 
                 {/* Suporte */}
-                <Card className="p-6">
-                  <div className="flex items-start gap-4">
-                    <div className="p-3 rounded-lg bg-primary/10 text-primary">
-                      <Mail className="h-5 w-5" />
+                <Card className="p-4 md:p-6">
+                  <div className="flex items-start gap-3 md:gap-4">
+                    <div className="p-2 md:p-3 rounded-lg bg-primary/10 text-primary shrink-0">
+                      <Mail className="h-4 w-4 md:h-5 md:w-5" />
                     </div>
                     <div className="flex-1">
-                      <h2 className="text-xl font-bold text-foreground mb-2">Precisa de Mais Ajuda?</h2>
-                      <p className="text-sm text-muted-foreground mb-4">
+                      <h2 className="text-lg md:text-xl font-bold text-foreground mb-2">Precisa de Mais Ajuda?</h2>
+                      <p className="text-xs md:text-sm text-muted-foreground mb-4">
                         Nossa equipe de suporte está pronta para ajudar você com qualquer dúvida ou problema.
                       </p>
-                      <div className="flex flex-col sm:flex-row gap-3">
-                        <Button variant="default">
+                      <div className="flex flex-col sm:flex-row gap-2 md:gap-3">
+                        <Button variant="default" className="w-full sm:w-auto">
                           <Mail className="h-4 w-4 mr-2" />
                           Entrar em Contato
                         </Button>
-                        <Button variant="outline">
+                        <Button variant="outline" className="w-full sm:w-auto">
                           <MessageCircle className="h-4 w-4 mr-2" />
                           Chat ao Vivo
                         </Button>
@@ -199,8 +199,8 @@ function AdminHelpView() {
                 </Card>
 
                 {/* Informações do Sistema */}
-                <Card className="p-6 bg-muted/30">
-                  <div className="flex flex-col gap-2 text-sm">
+                <Card className="p-4 md:p-6 bg-muted/30">
+                  <div className="flex flex-col gap-2 text-xs md:text-sm">
                     <div className="flex justify-between items-center">
                       <span className="text-muted-foreground">Versão do Sistema</span>
                       <span className="font-mono font-medium text-foreground">v1.0.0</span>

@@ -276,17 +276,17 @@ function AdminArtifactsView() {
     <div className="flex h-screen w-full">
       <AdminSidebar />
 
-      <main className="flex-1 flex flex-col h-screen overflow-hidden">
+      <main className="flex-1 flex flex-col h-screen overflow-hidden md:ml-0">
         <div className="flex-1 overflow-y-auto">
-          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-10 py-8">
+          <div className="mx-auto max-w-7xl px-3 md:px-4 sm:px-6 lg:px-10 py-4 md:py-8 pt-16 md:pt-8">
             <section>
-              <div className="flex flex-wrap justify-between gap-4 items-center mb-6">
-                <h1 className="text-3xl sm:text-4xl font-black leading-tight tracking-tight text-foreground">
+              <div className="flex flex-wrap justify-between gap-4 items-center mb-4 md:mb-6">
+                <h1 className="text-2xl md:text-3xl sm:text-4xl font-black leading-tight tracking-tight text-foreground">
                   Artefatos Culturais
                 </h1>
               </div>
               
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6">
                 {/* Card Adicionar Novo */}
                 <Card
                   className="border-2 border-dashed border-border hover:border-primary hover:bg-primary/5 transition-colors cursor-pointer group"
@@ -388,7 +388,7 @@ function AdminArtifactsView() {
 
       {/* Modal Adicionar Artefato */}
       <Dialog open={showAddModal} onOpenChange={setShowAddModal}>
-        <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col">
+        <DialogContent className="w-[95vw] max-w-4xl max-h-[90vh] flex flex-col">
           <DialogHeader>
             <DialogTitle>Adicionar Novo Artefato</DialogTitle>
             <DialogDescription>
@@ -460,7 +460,7 @@ function AdminArtifactsView() {
 
             <div className="space-y-3">
               <Label>Tema do Card (opcional)</Label>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 md:gap-3">
                 {COLOR_PALETTE.map((color) => (
                   <button
                     key={color.value || 'none'}
@@ -522,7 +522,7 @@ function AdminArtifactsView() {
 
       {/* Modal de Tags */}
       <Dialog open={!!showTagsModal} onOpenChange={(open) => !open && setShowTagsModal(null)}>
-        <DialogContent>
+        <DialogContent className="w-[95vw] sm:max-w-lg">
           <DialogHeader>
             <DialogTitle>Gerenciar Tags do Artefato</DialogTitle>
             <DialogDescription>
@@ -608,7 +608,7 @@ function AdminArtifactsView() {
 
       {/* Modal de Edição */}
       <Dialog open={showEditModal} onOpenChange={setShowEditModal}>
-        <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col">
+        <DialogContent className="w-[95vw] max-w-4xl max-h-[90vh] flex flex-col">
           <DialogHeader>
             <DialogTitle>Editar Artefato</DialogTitle>
             <DialogDescription>
@@ -734,7 +734,7 @@ function AdminArtifactsView() {
 
             <div className="space-y-3">
               <Label>Tema do Card (opcional)</Label>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 md:gap-3">
                 {COLOR_PALETTE.map((color) => (
                   <button
                     key={color.value || 'none'}

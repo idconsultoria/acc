@@ -151,20 +151,20 @@ function AdminView() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-background to-muted/20 p-4 md:p-8">
-      <div className="max-w-7xl mx-auto space-y-6">
+    <div className="min-h-screen bg-gradient-to-b from-background to-muted/20 p-3 md:p-4 lg:p-8">
+      <div className="max-w-7xl mx-auto space-y-4 md:space-y-6">
         {/* Header */}
         <Card className="border-primary/20">
           <CardHeader>
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 md:gap-3">
               <div className="p-2 rounded-lg bg-primary text-primary-foreground">
-                <Shield className="h-5 w-5" />
+                <Shield className="h-4 w-4 md:h-5 md:w-5" />
               </div>
               <div>
-                <CardTitle className="text-3xl bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
+                <CardTitle className="text-xl md:text-2xl lg:text-3xl bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
                   Painel do Guardião Cultural
                 </CardTitle>
-                <CardDescription className="text-base mt-1">
+                <CardDescription className="text-sm md:text-base mt-1">
                   Gerencie artefatos, instruções e feedbacks do agente cultural
                 </CardDescription>
               </div>
@@ -172,7 +172,7 @@ function AdminView() {
           </CardHeader>
         </Card>
 
-        <Tabs defaultValue="agent" className="space-y-6">
+        <Tabs defaultValue="agent" className="space-y-4 md:space-y-6">
           <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="agent" className="gap-2">
               <Bot className="h-4 w-4" />
@@ -258,7 +258,7 @@ function AdminView() {
                     <p className="text-sm">Clique em "Adicionar Artefato" para começar.</p>
                   </div>
                 ) : (
-                  <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                  <div className="grid gap-3 md:gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
                     {artifacts.map((artifact) => (
                       <Card key={artifact.id} className="relative">
                         <CardHeader>
@@ -394,7 +394,7 @@ function AdminView() {
 
         {/* Modal Adicionar Artefato */}
         <Dialog open={showAddModal} onOpenChange={setShowAddModal}>
-          <DialogContent>
+          <DialogContent className="w-[95vw] sm:max-w-lg">
             <DialogHeader>
               <DialogTitle>Adicionar Novo Artefato</DialogTitle>
               <DialogDescription>
@@ -493,7 +493,7 @@ function AdminView() {
 
         {/* Modal de Tags */}
         <Dialog open={!!showTagsModal} onOpenChange={(open) => !open && setShowTagsModal(null)}>
-          <DialogContent>
+          <DialogContent className="w-[95vw] sm:max-w-lg">
             <DialogHeader>
               <DialogTitle>Gerenciar Tags do Artefato</DialogTitle>
               <DialogDescription>
