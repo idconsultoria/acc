@@ -16,17 +16,12 @@ import uuid
 
 router = APIRouter()
 
-# Valida configurações antes de inicializar
-if not GEMINI_API_KEY:
-    raise ValueError("GEMINI_API_KEY deve estar configurado no arquivo .env")
-if not SUPABASE_URL or not SUPABASE_SERVICE_ROLE_KEY:
-    raise ValueError("SUPABASE_URL e SUPABASE_SERVICE_ROLE_KEY devem estar configurados")
-
-# Inicializa serviços
+# Inicializa serviços (com tratamento de erros para variáveis não configuradas)
+# As validações serão feitas dentro das rotas, não durante a importação
 pdf_processor = PDFProcessor()
-embedding_generator = EmbeddingGenerator(GEMINI_API_KEY)
+embedding_generator = EmbeddingGenerator(GEMINI_API_KEY) if GEMINI_API_KEY else None
 artifacts_repo = ArtifactsRepository()
-supabase_storage = create_client(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
+supabase_storage = create_client(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY) if (SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY) else None
 
 
 @router.get("/artifacts", response_model=list[ArtifactDTO])
@@ -69,6 +64,12 @@ async def create_artifact(
     source_url = None
     
     if file:
+        # Valida configurações necessárias
+        if not embedding_generator:
+            raise HTTPException(status_code=500, detail="GEMINI_API_KEY não configurada. Configure a variável de ambiente GOOGLE_API_KEY no Vercel.")
+        if not supabase_storage:
+            raise HTTPException(status_code=500, detail="Supabase não configurado. Configure SUPABASE_URL e SUPABASE_SERVICE_ROLE_KEY no Vercel.")
+        
         # Processa PDF
         file_content = await file.read()
         
@@ -91,6 +92,10 @@ async def create_artifact(
         # Obtém URL pública
         source_url = supabase_storage.storage.from_("artifacts").get_public_url(storage_path)
     else:
+        # Valida configurações necessárias
+        if not embedding_generator:
+            raise HTTPException(status_code=500, detail="GEMINI_API_KEY não configurada. Configure a variável de ambiente GOOGLE_API_KEY no Vercel.")
+        
         # Cria artefato a partir de texto
         artifact = create_artifact_from_text(
             title=title,

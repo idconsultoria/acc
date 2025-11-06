@@ -50,9 +50,10 @@ try:
         from mangum import Mangum
         handler = Mangum(app, lifespan="off")
         print("✓ Using Mangum adapter for Vercel")
-    except ImportError:
-        # Fallback: tenta usar app diretamente (pode não funcionar em todos os casos)
-        print("⚠ Mangum not found, using app directly (may not work)")
+    except ImportError as e:
+        print(f"⚠ Mangum import error: {e}")
+        print("⚠ Trying to use app directly (may not work)")
+        # Fallback: tenta usar app diretamente
         handler = app
     
 except ImportError as e:
@@ -64,10 +65,15 @@ except ImportError as e:
         print(f"  Contents: {app_contents}")
     else:
         print(f"✗ 'app' directory does NOT exist")
+    import traceback
+    traceback.print_exc()
     raise
 except Exception as e:
     print(f"✗ UNEXPECTED ERROR: {type(e).__name__}: {e}")
     import traceback
     traceback.print_exc()
     raise
+
+# Export handler - Vercel espera que o handler seja exportado no nível do módulo
+# O handler será chamado automaticamente pelo Vercel quando a função for invocada
 

@@ -24,9 +24,8 @@ knowledge_repo = KnowledgeRepository()
 agent_settings_repo = AgentSettingsRepository()
 topics_repo = TopicsRepository()
 
-# Valida chaves antes de inicializar
-if not GEMINI_API_KEY:
-    raise ValueError("GEMINI_API_KEY deve estar configurado no arquivo .env")
+# Validação de GEMINI_API_KEY será feita dentro das rotas quando necessário
+# Não falha durante a importação para permitir que o servidor inicie
 
 
 @router.post("/conversations")
