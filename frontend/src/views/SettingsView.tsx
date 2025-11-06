@@ -51,7 +51,7 @@ export default function SettingsView() {
       {/* Main Content Area */}
       <main className="flex flex-1 flex-col h-screen md:ml-0">
         {/* Header */}
-        <div className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+        <div className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 pt-14 md:pt-0">
           <div className="flex h-14 items-center px-3 md:px-6">
             <h1 className="text-base md:text-lg font-semibold">Configurações</h1>
           </div>

@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { MessageSquare, Clock, Book, User, Settings, Bot, Plus, Menu, X } from 'lucide-react'
+import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { useStore } from '@/state/store'
 import { api } from '@/api/client'
@@ -40,7 +41,7 @@ const Sidebar = () => {
       {/* Botão Hamburger para Mobile */}
       <button
         onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-        className="md:hidden fixed top-4 left-4 z-50 p-2 rounded-lg bg-background border border-border shadow-lg"
+        className="md:hidden fixed top-3 left-3 z-20 p-2 rounded-lg bg-background border border-border shadow-lg hover:bg-muted transition-colors"
         aria-label="Toggle menu"
       >
         {isMobileMenuOpen ? (
@@ -68,14 +69,22 @@ const Sidebar = () => {
       >
         <div className="flex flex-col h-full justify-between p-4">
           <div className="flex flex-col gap-4">
-            <div className="flex gap-3 items-center">
+            <div className="flex gap-3 items-center pr-8 md:pr-0 relative">
               <div className="bg-gradient-to-br from-blue-500 via-purple-500 to-blue-600 text-white rounded-full size-10 flex items-center justify-center shrink-0 shadow-lg ring-2 ring-blue-400/50">
                 <Bot className="h-5 w-5 text-white" strokeWidth={2.5} />
               </div>
-              <div className="flex flex-col">
+              <div className="flex flex-col flex-1 min-w-0">
                 <h1 className="text-foreground text-base font-medium leading-normal">Agente Cultural IA</h1>
                 <p className="text-muted-foreground text-sm font-normal leading-normal">Seu parceiro de reflexão</p>
               </div>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="md:hidden absolute top-0 right-0 h-8 w-8 shrink-0"
+              >
+                <X className="h-4 w-4" />
+              </Button>
             </div>
 
             <nav className="flex flex-col gap-2 mt-4">

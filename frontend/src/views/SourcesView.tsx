@@ -103,7 +103,7 @@ function SourcesView() {
         <div className="flex-1 overflow-y-auto">
           <div className="mx-auto max-w-6xl px-3 md:px-4 sm:px-8 md:px-16 lg:px-24 xl:px-40 py-3 md:py-5">
             {/* Header */}
-            <div className="flex flex-wrap justify-between gap-3 pt-12 md:pt-10 pb-4 md:pb-6">
+            <div className="flex flex-wrap justify-between gap-3 pt-14 md:pt-10 pb-4 md:pb-6">
               <div className="flex min-w-0 flex-col gap-2 md:gap-3">
                 <h1 className="text-2xl md:text-4xl font-black leading-tight tracking-tight text-foreground">
                   Base de Conhecimento

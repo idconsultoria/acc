@@ -72,7 +72,7 @@ function HistoryView() {
 
       <main className="flex flex-1 flex-col h-screen overflow-hidden md:ml-0">
         {/* Botão para abrir painel de tópicos em mobile */}
-        <div className="md:hidden px-4 py-3 border-b border-border bg-background">
+        <div className="md:hidden px-4 py-3 border-b border-border bg-background pt-14">
           <Button
             variant="outline"
             onClick={() => setIsTopicsPanelOpen(true)}
@@ -101,13 +101,13 @@ function HistoryView() {
             "md:translate-x-0",
             isTopicsPanelOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
           )}>
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between relative pr-8 md:pr-0">
               <h2 className="text-lg md:text-xl font-semibold text-foreground">Tópicos</h2>
               <Button
                 variant="ghost"
                 size="icon"
                 onClick={() => setIsTopicsPanelOpen(false)}
-                className="md:hidden"
+                className="md:hidden absolute top-0 right-0 h-8 w-8 shrink-0"
               >
                 <X className="h-4 w-4" />
               </Button>

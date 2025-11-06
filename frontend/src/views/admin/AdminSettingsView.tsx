@@ -23,7 +23,7 @@ function AdminSettingsView() {
 
       <main className="flex-1 flex flex-col h-screen overflow-hidden md:ml-0">
         <div className="flex-1 overflow-y-auto">
-          <div className="mx-auto max-w-5xl px-3 md:px-4 sm:px-6 lg:px-10 py-4 md:py-8 pt-16 md:pt-8">
+          <div className="mx-auto max-w-5xl px-3 md:px-4 sm:px-6 lg:px-10 py-4 md:py-8 pt-14 md:pt-8">
             <section>
               <div className="flex flex-wrap justify-between gap-4 items-center mb-6 md:mb-8">
                 <div>

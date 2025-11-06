@@ -167,7 +167,7 @@ function ProfileView() {
       <Sidebar />
 
       <main className="flex flex-1 flex-col h-screen overflow-y-auto bg-background md:ml-0">
-        <div className="p-3 md:p-6 space-y-4 md:space-y-6 max-w-7xl mx-auto w-full">
+        <div className="p-3 md:p-6 space-y-4 md:space-y-6 max-w-7xl mx-auto w-full pt-14 md:pt-6">
           {/* Header */}
           <div>
             <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Painel de Perfil Personalizado</h1>

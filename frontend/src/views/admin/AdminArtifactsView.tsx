@@ -278,7 +278,7 @@ function AdminArtifactsView() {
 
       <main className="flex-1 flex flex-col h-screen overflow-hidden md:ml-0">
         <div className="flex-1 overflow-y-auto">
-          <div className="mx-auto max-w-7xl px-3 md:px-4 sm:px-6 lg:px-10 py-4 md:py-8 pt-16 md:pt-8">
+          <div className="mx-auto max-w-7xl px-3 md:px-4 sm:px-6 lg:px-10 py-4 md:py-8 pt-14 md:pt-8">
             <section>
               <div className="flex flex-wrap justify-between gap-4 items-center mb-4 md:mb-6">
                 <h1 className="text-2xl md:text-3xl sm:text-4xl font-black leading-tight tracking-tight text-foreground">
