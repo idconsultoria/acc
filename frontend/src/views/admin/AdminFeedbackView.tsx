@@ -130,7 +130,7 @@ function AdminFeedbackView() {
             </p>
           </div>
           {showActions && isPending && (
-            <div className="flex items-center gap-3 self-end sm:self-center">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3 self-end sm:self-center">
               <Button
                 variant="outline"
                 size="sm"
@@ -139,7 +139,7 @@ function AdminFeedbackView() {
                   approveFeedbackMutation.mutate(feedback.id)
                 }}
                 disabled={approveFeedbackMutation.isPending || rejectFeedbackMutation.isPending}
-                className="bg-green-500/10 text-green-600 hover:bg-green-500/20 border-green-500/20"
+                className="bg-green-500/10 text-green-600 hover:bg-green-500/20 border-green-500/20 w-full sm:w-auto"
               >
                 {approveFeedbackMutation.isPending ? (
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
@@ -156,7 +156,7 @@ function AdminFeedbackView() {
                   rejectFeedbackMutation.mutate(feedback.id)
                 }}
                 disabled={approveFeedbackMutation.isPending || rejectFeedbackMutation.isPending}
-                className="bg-destructive/10 text-destructive hover:bg-destructive/20 border-destructive/20"
+                className="bg-destructive/10 text-destructive hover:bg-destructive/20 border-destructive/20 w-full sm:w-auto"
               >
                 {rejectFeedbackMutation.isPending ? (
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
@@ -176,27 +176,27 @@ function AdminFeedbackView() {
     <div className="flex h-screen w-full">
       <AdminSidebar />
 
-      <main className="flex-1 flex flex-col h-screen overflow-hidden">
+      <main className="flex-1 flex flex-col h-screen overflow-hidden md:ml-0">
         <div className="flex-1 overflow-y-auto">
-          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-10 py-8">
+          <div className="mx-auto max-w-7xl px-3 md:px-4 sm:px-6 lg:px-10 py-4 md:py-8 pt-14 md:pt-8">
             <section>
-              <div className="flex flex-wrap justify-between gap-4 items-center mb-6">
-                <h1 className="text-3xl sm:text-4xl font-black leading-tight tracking-tight text-foreground">
+              <div className="flex flex-wrap justify-between gap-4 items-center mb-4 md:mb-6">
+                <h1 className="text-2xl md:text-3xl sm:text-4xl font-black leading-tight tracking-tight text-foreground">
                   Revisão de Feedback
                 </h1>
               </div>
               
               <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'pending' | 'reviewed')} className="w-full">
-                <TabsList className="border-b border-border bg-transparent p-0 h-auto mb-6">
+                <TabsList className="border-b border-border bg-transparent p-0 h-auto mb-4 md:mb-6">
                   <TabsTrigger
                     value="pending"
-                    className="pb-3 border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:text-primary rounded-none"
+                    className="pb-2 md:pb-3 text-sm md:text-base border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:text-primary rounded-none"
                   >
                     Pendentes {pendingFeedbacks.length > 0 && `(${pendingFeedbacks.length})`}
                   </TabsTrigger>
                   <TabsTrigger
                     value="reviewed"
-                    className="pb-3 border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:text-primary rounded-none"
+                    className="pb-2 md:pb-3 text-sm md:text-base border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:text-primary rounded-none"
                   >
                     Revisados {reviewedFeedbacks.length > 0 && `(${reviewedFeedbacks.length})`}
                   </TabsTrigger>
@@ -279,7 +279,7 @@ function AdminFeedbackView() {
 
       {/* Modal de Histórico da Conversa */}
       <Dialog open={!!selectedFeedback} onOpenChange={(open) => !open && setSelectedFeedback(null)}>
-        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+        <DialogContent className="w-[95vw] max-w-4xl max-h-[85vh] md:max-h-[80vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Histórico Completo da Conversa</DialogTitle>
             <DialogDescription>
@@ -303,10 +303,10 @@ function AdminFeedbackView() {
                   <div
                     key={message.id}
                     className={cn(
-                      "flex gap-3 p-4 rounded-lg",
+                      "flex gap-2 md:gap-3 p-3 md:p-4 rounded-lg",
                       message.author === 'USER' 
-                        ? "bg-muted/50 ml-auto max-w-[80%]"
-                        : "bg-primary/5 mr-auto max-w-[80%]"
+                        ? "bg-muted/50 ml-auto max-w-[90%] md:max-w-[80%]"
+                        : "bg-primary/5 mr-auto max-w-[90%] md:max-w-[80%]"
                     )}
                   >
                     <div className="flex-1">

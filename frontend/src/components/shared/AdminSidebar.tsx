@@ -1,9 +1,12 @@
+import { useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
-import { FilePenLine, FileText, MessageSquare, Settings, HelpCircle, Shield } from 'lucide-react'
+import { FilePenLine, FileText, MessageSquare, Settings, HelpCircle, Shield, Menu, X } from 'lucide-react'
+import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 
 const AdminSidebar = () => {
   const location = useLocation()
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
 
   const navItems = [
     { icon: FilePenLine, label: 'Instrução do Agente', path: '/admin/instruction' },
@@ -16,35 +19,100 @@ const AdminSidebar = () => {
     { icon: HelpCircle, label: 'Ajuda e Suporte', path: '/admin/help' },
   ]
 
+  const handleNavClick = () => {
+    setIsMobileMenuOpen(false)
+  }
+
   return (
-    <aside className="flex flex-col w-64 bg-background border-r border-border">
-      <div className="flex flex-col h-full justify-between p-4">
-        <div className="flex flex-col gap-4">
-          <div className="flex gap-3 items-center">
-            <div className="bg-foreground text-background rounded-lg size-10 flex items-center justify-center shrink-0 shadow-lg">
-              <Shield className="h-5 w-5 text-background" strokeWidth={2.5} fill="currentColor" />
+    <>
+      {/* Botão Hamburger para Mobile */}
+      <button
+        onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+        className="md:hidden fixed top-3 left-3 z-20 p-2 rounded-lg bg-background border border-border shadow-lg hover:bg-muted transition-colors"
+        aria-label="Toggle menu"
+      >
+        {isMobileMenuOpen ? (
+          <X className="h-5 w-5" />
+        ) : (
+          <Menu className="h-5 w-5" />
+        )}
+      </button>
+
+      {/* Overlay para Mobile */}
+      {isMobileMenuOpen && (
+        <div
+          className="md:hidden fixed inset-0 bg-black/50 z-40"
+          onClick={() => setIsMobileMenuOpen(false)}
+        />
+      )}
+
+      {/* Sidebar */}
+      <aside
+        className={cn(
+          'flex flex-col w-64 bg-background border-r border-border fixed md:static h-full z-40 transition-transform duration-300',
+          'md:translate-x-0',
+          isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
+        )}
+      >
+        <div className="flex flex-col h-full justify-between p-4">
+          <div className="flex flex-col gap-4">
+            <div className="flex gap-3 items-center pr-8 md:pr-0">
+              <div className="bg-foreground text-background rounded-lg size-10 flex items-center justify-center shrink-0 shadow-lg">
+                <Shield className="h-5 w-5 text-background" strokeWidth={2.5} fill="currentColor" />
+              </div>
+              <div className="flex flex-col flex-1 min-w-0">
+                <h1 className="text-foreground text-base font-bold leading-normal">Guardião Cultural</h1>
+                <p className="text-muted-foreground text-xs font-normal leading-normal">Painel de Administração</p>
+              </div>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="md:hidden absolute top-2 right-2 h-8 w-8 shrink-0"
+              >
+                <X className="h-4 w-4" />
+              </Button>
             </div>
-            <div className="flex flex-col">
-              <h1 className="text-foreground text-base font-bold leading-normal">Guardião Cultural</h1>
-              <p className="text-muted-foreground text-xs font-normal leading-normal">Painel de Administração</p>
-            </div>
+
+            <nav className="flex flex-col gap-2 mt-4">
+              {navItems.map((item) => {
+                const Icon = item.icon
+                const isActive = location.pathname === item.path || 
+                  (item.path === '/admin/instruction' && location.pathname === '/admin')
+                
+                return (
+                  <Link
+                    key={item.path}
+                    to={item.path}
+                    onClick={handleNavClick}
+                    className={cn(
+                      'flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors',
+                      isActive
+                        ? 'bg-primary/20 text-primary dark:bg-[#243047] dark:text-white font-bold'
+                        : 'text-muted-foreground hover:bg-muted dark:hover:bg-muted/50 font-medium'
+                    )}
+                  >
+                    <Icon className="h-5 w-5" />
+                    <span className="leading-normal">{item.label}</span>
+                  </Link>
+                )
+              })}
+            </nav>
           </div>
 
-          <nav className="flex flex-col gap-2 mt-4">
-            {navItems.map((item) => {
+          <div className="flex flex-col gap-1">
+            {utilityItems.map((item) => {
               const Icon = item.icon
-              const isActive = location.pathname === item.path || 
-                (item.path === '/admin/instruction' && location.pathname === '/admin')
+              const isActive = location.pathname === item.path
               
               return (
                 <Link
                   key={item.path}
                   to={item.path}
+                  onClick={handleNavClick}
                   className={cn(
-                    'flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors',
-                    isActive
-                      ? 'bg-primary/20 text-primary dark:bg-[#243047] dark:text-white font-bold'
-                      : 'text-muted-foreground hover:bg-muted dark:hover:bg-muted/50 font-medium'
+                    'flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:bg-muted dark:hover:bg-muted/50 transition-colors',
+                    isActive && 'bg-primary/10 text-primary'
                   )}
                 >
                   <Icon className="h-5 w-5" />
@@ -52,31 +120,10 @@ const AdminSidebar = () => {
                 </Link>
               )
             })}
-          </nav>
+          </div>
         </div>
-
-        <div className="flex flex-col gap-1">
-          {utilityItems.map((item) => {
-            const Icon = item.icon
-            const isActive = location.pathname === item.path
-            
-            return (
-              <Link
-                key={item.path}
-                to={item.path}
-                className={cn(
-                  'flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:bg-muted dark:hover:bg-muted/50 transition-colors',
-                  isActive && 'bg-primary/10 text-primary'
-                )}
-              >
-                <Icon className="h-5 w-5" />
-                <span className="leading-normal">{item.label}</span>
-              </Link>
-            )
-          })}
-        </div>
-      </div>
-    </aside>
+      </aside>
+    </>
   )
 }
 
