@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { api, Artifact } from '../../api/client'
+import { api, Artifact } from '@/api/client'
 import { Loader2, Plus, Trash2, Tag, XCircle, FileText, File, Check, Pencil } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
