@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
+import { Skeleton } from '@/components/ui/skeleton'
 import AdminSidebar from '@/components/shared/AdminSidebar'
 
 // Paleta de cores inspirada no shadcn-ui com bordas e fundos sutis
@@ -110,7 +111,7 @@ function AdminArtifactsView() {
   const [newTag, setNewTag] = useState('')
 
   // Busca artefatos
-  const { data: artifacts = [] } = useQuery({
+  const { data: artifacts = [], isLoading: isLoadingArtifacts } = useQuery({
     queryKey: ['artifacts'],
     queryFn: api.listArtifacts,
   })
@@ -301,8 +302,28 @@ function AdminArtifactsView() {
                   </CardContent>
                 </Card>
 
-                {/* Cards de Artefatos */}
-                {artifacts.map((artifact) => {
+                {/* Skeleton Loading */}
+                {isLoadingArtifacts ? (
+                  <>
+                    {[...Array(6)].map((_, i) => (
+                      <Card key={`skeleton-${i}`} className="relative">
+                        <CardContent className="p-4 flex flex-col">
+                          <div className="flex-1">
+                            <Skeleton className="h-10 w-10 mb-3" />
+                            <Skeleton className="h-5 w-3/4 mb-2" />
+                            <Skeleton className="h-3 w-1/2 mb-2" />
+                            <div className="flex flex-wrap gap-1 mt-2">
+                              <Skeleton className="h-5 w-16 rounded-full" />
+                              <Skeleton className="h-5 w-20 rounded-full" />
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </>
+                ) : (
+                  /* Cards de Artefatos */
+                  artifacts.map((artifact) => {
                   const colorConfig = COLOR_PALETTE.find(c => c.value === artifact.color)
                   const colorStyles = colorConfig?.styles || ''
                   
@@ -379,7 +400,8 @@ function AdminArtifactsView() {
                     </CardContent>
                   </Card>
                   )
-                })}
+                  })
+                )}
               </div>
             </section>
           </div>
