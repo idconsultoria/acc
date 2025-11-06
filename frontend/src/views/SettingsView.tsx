@@ -49,17 +49,17 @@ export default function SettingsView() {
       <Sidebar />
 
       {/* Main Content Area */}
-      <main className="flex flex-1 flex-col h-screen">
+      <main className="flex flex-1 flex-col h-screen md:ml-0">
         {/* Header */}
         <div className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-          <div className="flex h-14 items-center px-6">
-            <h1 className="text-lg font-semibold">Configurações</h1>
+          <div className="flex h-14 items-center px-3 md:px-6">
+            <h1 className="text-base md:text-lg font-semibold">Configurações</h1>
           </div>
         </div>
 
         {/* Content */}
-        <div className="flex-1 overflow-auto p-6">
-        <div className="max-w-2xl mx-auto space-y-6">
+        <div className="flex-1 overflow-auto p-3 md:p-6">
+        <div className="max-w-2xl mx-auto space-y-4 md:space-y-6">
           <Card>
             <CardHeader>
               <div className="flex items-center gap-2">
@@ -84,7 +84,7 @@ export default function SettingsView() {
               {/* API Key Input */}
               <div className="space-y-2">
                 <Label htmlFor="apiKey">Chave de API</Label>
-                <div className="flex gap-2">
+                <div className="flex flex-col sm:flex-row gap-2">
                   <div className="relative flex-1">
                     <Input
                       id="apiKey"
@@ -92,7 +92,7 @@ export default function SettingsView() {
                       placeholder="AIzaSy..."
                       value={apiKey}
                       onChange={(e) => setApiKey(e.target.value)}
-                      className="pr-10"
+                      className="pr-10 text-sm md:text-base"
                     />
                     <button
                       type="button"
@@ -109,6 +109,7 @@ export default function SettingsView() {
                   <Button
                     onClick={handleSave}
                     disabled={!apiKey.trim() || saveApiKeyMutation.isPending}
+                    className="w-full sm:w-auto"
                   >
                     <Save className="h-4 w-4 mr-2" />
                     Salvar

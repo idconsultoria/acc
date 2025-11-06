@@ -99,25 +99,25 @@ function SourcesView() {
     <div className="flex h-screen w-full">
       <Sidebar />
 
-      <main className="flex flex-1 flex-col h-screen overflow-hidden">
+      <main className="flex flex-1 flex-col h-screen overflow-hidden md:ml-0">
         <div className="flex-1 overflow-y-auto">
-          <div className="mx-auto max-w-6xl px-4 sm:px-8 md:px-16 lg:px-24 xl:px-40 py-5">
+          <div className="mx-auto max-w-6xl px-3 md:px-4 sm:px-8 md:px-16 lg:px-24 xl:px-40 py-3 md:py-5">
             {/* Header */}
-            <div className="flex flex-wrap justify-between gap-3 pt-10 pb-6">
-              <div className="flex min-w-72 flex-col gap-3">
-                <h1 className="text-4xl font-black leading-tight tracking-tight text-foreground">
+            <div className="flex flex-wrap justify-between gap-3 pt-12 md:pt-10 pb-4 md:pb-6">
+              <div className="flex min-w-0 flex-col gap-2 md:gap-3">
+                <h1 className="text-2xl md:text-4xl font-black leading-tight tracking-tight text-foreground">
                   Base de Conhecimento
                 </h1>
-                <p className="text-base font-normal leading-normal text-muted-foreground">
+                <p className="text-sm md:text-base font-normal leading-normal text-muted-foreground">
                   Pesquise e navegue por todos os artefatos culturais e aprendizados usados pelo agente.
                 </p>
               </div>
             </div>
 
             {/* Search Bar */}
-            <div className="py-3">
+            <div className="py-2 md:py-3">
               <div className="relative">
-                <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Search className="absolute left-3 md:left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
                   type="text"
                   placeholder="Pesquise por artigos, estudos de caso, valores..."
@@ -126,13 +126,13 @@ function SourcesView() {
                     setSearchQuery(e.target.value)
                     setCurrentPage(1) // Reset para primeira página ao buscar
                   }}
-                  className="pl-10 h-12 rounded-xl bg-muted border-none focus-ring-2 focus-ring-primary/50"
+                  className="pl-9 md:pl-10 h-10 md:h-12 rounded-xl bg-muted border-none focus-ring-2 focus-ring-primary/50 text-sm md:text-base"
                 />
               </div>
             </div>
 
             {/* Filter Chips */}
-            <div className="flex gap-2 p-3 overflow-x-auto pb-4">
+            <div className="flex gap-2 p-2 md:p-3 overflow-x-auto pb-3 md:pb-4">
               {filters.map((filter) => (
                 <Button
                   key={filter}
@@ -142,7 +142,7 @@ function SourcesView() {
                   }}
                   variant={selectedFilter === filter ? 'default' : 'outline'}
                   className={cn(
-                    'h-8 rounded-full px-4 shrink-0',
+                    'h-7 md:h-8 rounded-full px-3 md:px-4 shrink-0 text-xs md:text-sm',
                     selectedFilter === filter
                       ? 'bg-primary text-primary-foreground'
                       : 'bg-muted hover:bg-muted/80 text-foreground'
@@ -155,14 +155,14 @@ function SourcesView() {
 
             {/* Content Grid */}
             {isLoadingArtifacts ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 p-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4 p-2 md:p-4">
                 {[...Array(6)].map((_, i) => (
                   <Card key={i} className="border border-border">
-                    <CardContent className="p-3 flex flex-col gap-3">
+                    <CardContent className="p-2 md:p-3 flex flex-col gap-2 md:gap-3">
                       <Skeleton className="w-full aspect-video rounded-lg" />
-                      <Skeleton className="h-5 w-3/4" />
-                      <Skeleton className="h-4 w-full" />
-                      <Skeleton className="h-4 w-2/3" />
+                      <Skeleton className="h-4 md:h-5 w-3/4" />
+                      <Skeleton className="h-3 md:h-4 w-full" />
+                      <Skeleton className="h-3 md:h-4 w-2/3" />
                       <Skeleton className="h-3 w-1/2" />
                     </CardContent>
                   </Card>
@@ -170,20 +170,20 @@ function SourcesView() {
               </div>
             ) : paginatedArtifacts.length === 0 ? (
               <Card className="border border-border">
-                <CardContent className="p-6 text-center text-muted-foreground">
+                <CardContent className="p-4 md:p-6 text-center text-muted-foreground text-sm md:text-base">
                   Nenhum artefato encontrado para os filtros selecionados.
                 </CardContent>
               </Card>
             ) : (
               <>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 p-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4 p-2 md:p-4">
                   {paginatedArtifacts.map((artifact) => (
                     <Card
                       key={artifact.id}
                       className="border border-border bg-card/50 hover:bg-card transition-colors cursor-pointer"
                       onClick={() => handleArtifactClick(artifact)}
                     >
-                      <CardContent className="p-3 flex flex-col gap-3">
+                      <CardContent className="p-2 md:p-3 flex flex-col gap-2 md:gap-3">
                         {/* Image Placeholder */}
                         <div
                           className="w-full aspect-video rounded-lg bg-cover bg-center"
@@ -194,14 +194,14 @@ function SourcesView() {
 
                         {/* Title and Description */}
                         <div>
-                          <h3 className="text-base font-medium leading-normal text-foreground">
+                          <h3 className="text-sm md:text-base font-medium leading-normal text-foreground">
                             {artifact.title}
                           </h3>
-                          <p className="text-sm font-normal leading-normal text-muted-foreground mt-1">
+                          <p className="text-xs md:text-sm font-normal leading-normal text-muted-foreground mt-1">
                             {artifact.description || 'Artefato cultural da base de conhecimento.'}
                           </p>
                           {/* Tags */}
-                          <div className="flex flex-wrap gap-1 mt-2">
+                          <div className="flex flex-wrap gap-1 mt-1 md:mt-2">
                             {artifact.tags && artifact.tags.length > 0 ? (
                               artifact.tags.slice(0, 2).map((tag, idx) => (
                                 <Badge
@@ -229,16 +229,16 @@ function SourcesView() {
 
                 {/* Pagination */}
                 {totalPages > 1 && (
-                  <div className="flex items-center justify-center p-6 mt-4">
-                    <nav className="flex items-center gap-2">
+                  <div className="flex items-center justify-center p-4 md:p-6 mt-2 md:mt-4">
+                    <nav className="flex items-center gap-1 md:gap-2">
                       <Button
                         variant="outline"
                         size="icon"
                         onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
                         disabled={currentPage === 1}
-                        className="h-9 w-9 rounded-lg"
+                        className="h-8 w-8 md:h-9 md:w-9 rounded-lg"
                       >
-                        <ChevronLeft className="h-4 w-4" />
+                        <ChevronLeft className="h-3 w-3 md:h-4 md:w-4" />
                       </Button>
                       
                       {/* Page Numbers */}
@@ -261,7 +261,7 @@ function SourcesView() {
                             size="icon"
                             onClick={() => setCurrentPage(pageNum)}
                             className={cn(
-                              'h-9 w-9 rounded-lg',
+                              'h-8 w-8 md:h-9 md:w-9 rounded-lg text-xs md:text-sm',
                               currentPage === pageNum
                                 ? 'bg-primary text-primary-foreground'
                                 : 'bg-muted hover:bg-muted/80'
@@ -274,12 +274,12 @@ function SourcesView() {
                       
                       {totalPages > 5 && (
                         <>
-                          <span className="text-muted-foreground">...</span>
+                          <span className="text-muted-foreground text-xs md:text-sm">...</span>
                           <Button
                             variant="outline"
                             size="icon"
                             onClick={() => setCurrentPage(totalPages)}
-                            className="h-9 w-9 rounded-lg bg-muted hover:bg-muted/80"
+                            className="h-8 w-8 md:h-9 md:w-9 rounded-lg bg-muted hover:bg-muted/80"
                           >
                             {totalPages}
                           </Button>
@@ -291,9 +291,9 @@ function SourcesView() {
                         size="icon"
                         onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
                         disabled={currentPage === totalPages}
-                        className="h-9 w-9 rounded-lg"
+                        className="h-8 w-8 md:h-9 md:w-9 rounded-lg"
                       >
-                        <ChevronRight className="h-4 w-4" />
+                        <ChevronRight className="h-3 w-3 md:h-4 md:w-4" />
                       </Button>
                     </nav>
                   </div>
@@ -306,20 +306,20 @@ function SourcesView() {
 
       {/* Dialog para visualização do conteúdo */}
       <Dialog open={!!selectedArtifact} onOpenChange={(open) => !open && handleCloseDialog()}>
-        <DialogContent className="max-w-4xl h-[85vh] flex flex-col p-0">
-          <DialogHeader className="px-6 pt-6 pb-4 border-b shrink-0">
+        <DialogContent className="w-[95vw] max-w-4xl h-[90vh] md:h-[85vh] flex flex-col p-0">
+          <DialogHeader className="px-4 md:px-6 pt-4 md:pt-6 pb-3 md:pb-4 border-b shrink-0">
             <div className="flex items-start justify-between gap-4">
               <div className="flex-1">
-                <DialogTitle className="text-2xl font-bold text-foreground pr-8">
+                <DialogTitle className="text-lg md:text-2xl font-bold text-foreground pr-4 md:pr-8">
                   {selectedArtifact?.title}
                 </DialogTitle>
                 {selectedArtifact?.description && (
-                  <p className="text-sm text-muted-foreground mt-2 leading-relaxed">
+                  <p className="text-xs md:text-sm text-muted-foreground mt-2 leading-relaxed">
                     {selectedArtifact.description}
                   </p>
                 )}
                 {selectedArtifact?.tags && selectedArtifact.tags.length > 0 && (
-                  <div className="flex flex-wrap gap-2 mt-3">
+                  <div className="flex flex-wrap gap-2 mt-2 md:mt-3">
                     {selectedArtifact.tags.map((tag, idx) => (
                       <Badge
                         key={idx}
@@ -336,7 +336,7 @@ function SourcesView() {
           </DialogHeader>
 
           <ScrollArea className="flex-1 overflow-auto">
-            <div className="px-6 py-4">
+            <div className="px-4 md:px-6 py-3 md:py-4">
             {selectedArtifact?.source_type === 'PDF' ? (
               <div className="flex flex-col items-center justify-center py-12 text-center">
                 <FileText className="h-16 w-16 text-muted-foreground mb-4" />

@@ -510,12 +510,12 @@ function ChatView() {
     // Processa o conteúdo para encontrar referências a fontes
     // Por enquanto, renderiza o markdown normalmente e adiciona as citações no final
     return (
-      <div className="text-gray-800 dark:text-gray-300 text-base font-normal leading-relaxed space-y-4">
+      <div className="text-gray-800 dark:text-gray-300 text-sm md:text-base font-normal leading-relaxed space-y-3 md:space-y-4">
         <ReactMarkdown
           remarkPlugins={[remarkGfm]}
           components={{
             p: ({ children }) => <p className="mb-2">{children}</p>,
-            ul: ({ children }) => <ul className="list-disc pl-5 space-y-2 mb-2">{children}</ul>,
+            ul: ({ children }) => <ul className="list-disc pl-4 md:pl-5 space-y-1 md:space-y-2 mb-2">{children}</ul>,
             li: ({ children }) => <li className="mb-1">{children}</li>,
             strong: ({ children }) => <strong className="font-semibold">{children}</strong>,
           }}
@@ -600,10 +600,10 @@ function ChatView() {
       <Sidebar />
 
       {/* Main Chat Area */}
-      <main className="flex flex-1 flex-col h-screen">
+      <main className="flex flex-1 flex-col h-screen md:ml-0">
         {/* Topic Badge */}
         {hasAgentResponse && (conversationTopic?.is_processing || conversationTopic?.topic) && (
-          <div className="px-6 pt-4 pb-2 border-b border-border">
+          <div className="px-3 md:px-6 pt-16 md:pt-4 pb-2 border-b border-border mt-0">
             <div className="mx-auto max-w-4xl">
               {conversationTopic?.is_processing ? (
                 <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-muted/50 border border-border">
@@ -622,8 +622,8 @@ function ChatView() {
           </div>
         )}
 
-        <div ref={scrollContainerRef} className="flex-1 overflow-y-auto p-6">
-          <div className="mx-auto max-w-4xl space-y-8">
+        <div ref={scrollContainerRef} className={cn("flex-1 overflow-y-auto p-3 md:p-6", hasAgentResponse && (conversationTopic?.is_processing || conversationTopic?.topic) ? "" : "pt-16 md:pt-6")}>
+          <div className="mx-auto max-w-4xl space-y-6 md:space-y-8">
             {/* Loading Skeletons - Carregando pela primeira vez */}
             {isInitialLoading && (
               <>
@@ -644,25 +644,25 @@ function ChatView() {
 
             {/* Agent's Welcome Message */}
             {hasWelcomeMessage && !isChangingConversation && !isInitialLoading && (
-              <div className="flex gap-4">
-                <Avatar className="size-10 shrink-0">
+              <div className="flex gap-2 md:gap-4">
+                <Avatar className="size-8 md:size-10 shrink-0">
                   <AvatarFallback className="bg-gradient-to-br from-blue-500 via-purple-500 to-blue-600 text-white shadow-lg ring-2 ring-blue-400/50">
-                    <Bot className="h-5 w-5 text-white" strokeWidth={2.5} />
+                    <Bot className="h-4 w-4 md:h-5 md:w-5 text-white" strokeWidth={2.5} />
                   </AvatarFallback>
                 </Avatar>
                 <div className="flex flex-1 flex-col items-start gap-2">
-                  <div className="flex flex-col gap-2 rounded-lg bg-card p-4 border border-border">
-                    <div className="flex flex-wrap items-center gap-3">
-                      <p className="text-foreground text-base font-bold leading-tight">Agente Cultural IA</p>
-                      <p className="text-muted-foreground text-sm font-normal leading-normal">
+                  <div className="flex flex-col gap-2 rounded-lg bg-card p-3 md:p-4 border border-border">
+                    <div className="flex flex-wrap items-center gap-2 md:gap-3">
+                      <p className="text-foreground text-sm md:text-base font-bold leading-tight">Agente Cultural IA</p>
+                      <p className="text-muted-foreground text-xs md:text-sm font-normal leading-normal">
                         {formatTime(new Date().toISOString())}
                       </p>
                     </div>
-                    <p className="text-foreground text-base font-normal leading-relaxed">
+                    <p className="text-foreground text-sm md:text-base font-normal leading-relaxed">
                       Olá! Estou aqui para ajudá-lo a refletir sobre dilemas culturais que você enfrenta no trabalho. Sinta-se à vontade para descrever uma situação e eu fornecerei conselhos com fontes citadas. Você pode clicar em qualquer fonte para ver uma prévia. Seu feedback é valioso para meu aprendizado, então por favor use os ícones de polegar para cima ou para baixo.
                     </p>
                   </div>
-                  <div className="flex flex-wrap gap-2 px-2">
+                  <div className="flex flex-wrap gap-1 md:gap-2 px-1 md:px-2">
                     <Button
                       variant="ghost"
                       size="sm"
@@ -692,25 +692,25 @@ function ChatView() {
               const isPending = message.id === 'pending'
               
               return (
-                <div key={message.id} className={cn("flex gap-4", isAgent ? "" : "items-end justify-end", isPending && "opacity-70")}>
+                <div key={message.id} className={cn("flex gap-2 md:gap-4", isAgent ? "" : "items-end justify-end", isPending && "opacity-70")}>
                   {isAgent ? (
                     <>
-                      <Avatar className="size-10 shrink-0">
+                      <Avatar className="size-8 md:size-10 shrink-0">
                         <AvatarFallback className="bg-gradient-to-br from-blue-500 via-purple-500 to-blue-600 text-white shadow-lg ring-2 ring-blue-400/50">
-                          <Bot className="h-5 w-5 text-white" strokeWidth={2.5} />
+                          <Bot className="h-4 w-4 md:h-5 md:w-5 text-white" strokeWidth={2.5} />
                         </AvatarFallback>
                       </Avatar>
                       <div className="flex flex-1 flex-col items-start gap-2">
-                        <div className="flex flex-col gap-2 rounded-lg bg-card p-4 border border-border">
-                          <div className="flex flex-wrap items-center gap-3">
-                            <p className="text-foreground text-base font-bold leading-tight">Agente Cultural IA</p>
-                            <p className="text-muted-foreground text-sm font-normal leading-normal">
+                        <div className="flex flex-col gap-2 rounded-lg bg-card p-3 md:p-4 border border-border">
+                          <div className="flex flex-wrap items-center gap-2 md:gap-3">
+                            <p className="text-foreground text-sm md:text-base font-bold leading-tight">Agente Cultural IA</p>
+                            <p className="text-muted-foreground text-xs md:text-sm font-normal leading-normal">
                               {formatTime(message.created_at)}
                             </p>
                           </div>
                           {renderContentWithCitations(message.content, message.cited_sources)}
                         </div>
-                        <div className="flex flex-wrap gap-2 px-2">
+                        <div className="flex flex-wrap gap-1 md:gap-2 px-1 md:px-2">
                           <Button
                             variant="ghost"
                             size="sm"
@@ -778,12 +778,12 @@ function ChatView() {
                   ) : (
                     <>
                       <div className="flex flex-col gap-1 items-end">
-                        <p className="text-muted-foreground text-[13px] font-normal leading-normal text-right">Você</p>
-                        <p className="text-base font-normal leading-normal flex max-w-lg rounded-lg px-4 py-3 bg-primary text-primary-foreground">
+                        <p className="text-muted-foreground text-xs md:text-[13px] font-normal leading-normal text-right">Você</p>
+                        <p className="text-sm md:text-base font-normal leading-normal flex max-w-[85%] md:max-w-lg rounded-lg px-3 md:px-4 py-2 md:py-3 bg-primary text-primary-foreground">
                           {message.content}
                         </p>
                       </div>
-                      <Avatar className="w-10 shrink-0">
+                      <Avatar className="size-8 md:size-10 shrink-0">
                         <AvatarFallback className="bg-gradient-to-br from-purple-500 to-blue-500 text-white">
                           <span className="text-xs">U</span>
                         </AvatarFallback>
@@ -796,14 +796,14 @@ function ChatView() {
 
             {/* Agent is Typing Indicator */}
             {showTypingIndicator && (
-              <div className="flex gap-4">
-                <Avatar className="size-10 shrink-0">
+              <div className="flex gap-2 md:gap-4">
+                <Avatar className="size-8 md:size-10 shrink-0">
                   <AvatarFallback className="bg-gradient-to-br from-blue-500 via-purple-500 to-blue-600 text-white shadow-lg ring-2 ring-blue-400/50">
-                    <Bot className="h-5 w-5 text-white" strokeWidth={2.5} />
+                    <Bot className="h-4 w-4 md:h-5 md:w-5 text-white" strokeWidth={2.5} />
                   </AvatarFallback>
                 </Avatar>
-                <div className="flex items-center space-x-2 rounded-lg bg-card px-4 py-3 border border-border">
-                  <span className="text-muted-foreground">O agente está digitando...</span>
+                <div className="flex items-center space-x-2 rounded-lg bg-card px-3 md:px-4 py-2 md:py-3 border border-border">
+                  <span className="text-muted-foreground text-sm md:text-base">O agente está digitando...</span>
                   <div className="flex items-center space-x-1">
                     <div className="h-2 w-2 bg-gray-400 rounded-full animate-bounce [animation-delay:-0.3s]"></div>
                     <div className="h-2 w-2 bg-gray-400 rounded-full animate-bounce [animation-delay:-0.15s]"></div>
@@ -818,7 +818,7 @@ function ChatView() {
         </div>
 
         {/* Message Input Area */}
-        <div className="px-6 pb-6 pt-4 bg-background border-t">
+        <div className="px-3 md:px-6 pb-4 md:pb-6 pt-3 md:pt-4 bg-background border-t">
           <div className="mx-auto max-w-4xl">
             <form onSubmit={handleSubmit} className="relative flex items-center">
               <Textarea
@@ -826,7 +826,7 @@ function ChatView() {
                 onChange={(e) => setInput(e.target.value)}
                 placeholder="Digite sua mensagem..."
                 rows={1}
-                className="w-full resize-none rounded-lg border-input bg-card text-foreground placeholder:text-muted-foreground focus:ring-2 focus:ring-primary focus:border-primary pr-12 py-3 pl-4"
+                className="w-full resize-none rounded-lg border-input bg-card text-foreground placeholder:text-muted-foreground focus:ring-2 focus:ring-primary focus:border-primary pr-10 md:pr-12 py-2 md:py-3 pl-3 md:pl-4 text-sm md:text-base"
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' && !e.shiftKey) {
                     e.preventDefault()
@@ -838,9 +838,9 @@ function ChatView() {
               <Button
                 type="submit"
                 disabled={!input.trim() || sendMessageMutation.isPending}
-                className="absolute right-3 flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed p-0"
+                className="absolute right-2 md:right-3 flex h-7 w-7 md:h-8 md:w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed p-0"
               >
-                <Send className="h-5 w-5" />
+                <Send className="h-4 w-4 md:h-5 md:w-5" />
               </Button>
             </form>
           </div>
@@ -855,7 +855,7 @@ function ChatView() {
           setExistingFeedback(null)
         }
       }}>
-        <DialogContent>
+        <DialogContent className="w-[95vw] sm:max-w-lg">
           <DialogHeader>
             <DialogTitle>
               {existingFeedback ? 'Editar Feedback' : 'Enviar Feedback'}

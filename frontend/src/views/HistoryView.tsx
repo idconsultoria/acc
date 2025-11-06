@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import { api } from '@/api/client'
-import { Search, Loader2 } from 'lucide-react'
+import { Search, Loader2, X } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -14,6 +14,7 @@ function HistoryView() {
   const navigate = useNavigate()
   const [selectedTopicId, setSelectedTopicId] = useState<string | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
+  const [isTopicsPanelOpen, setIsTopicsPanelOpen] = useState(false)
 
   // Busca tópicos
   const { 
@@ -69,11 +70,48 @@ function HistoryView() {
     <div className="flex h-screen w-full">
       <Sidebar />
 
-      <main className="flex flex-1 flex-col h-screen overflow-hidden">
+      <main className="flex flex-1 flex-col h-screen overflow-hidden md:ml-0">
+        {/* Botão para abrir painel de tópicos em mobile */}
+        <div className="md:hidden px-4 py-3 border-b border-border bg-background">
+          <Button
+            variant="outline"
+            onClick={() => setIsTopicsPanelOpen(true)}
+            className="w-full justify-start"
+          >
+            <Search className="h-4 w-4 mr-2" />
+            {selectedTopicId 
+              ? topics.find(t => t.id === selectedTopicId)?.name || 'Filtrar tópicos...'
+              : 'Todos os Dilemas'}
+          </Button>
+        </div>
+
         <div className="flex flex-1 overflow-hidden">
+          {/* Overlay para mobile */}
+          {isTopicsPanelOpen && (
+            <div
+              className="md:hidden fixed inset-0 bg-black/50 z-40"
+              onClick={() => setIsTopicsPanelOpen(false)}
+            />
+          )}
+
           {/* Painel de Tópicos */}
-          <div className="w-64 border-r border-border bg-background p-6 flex flex-col gap-4">
-            <h2 className="text-xl font-semibold text-foreground">Tópicos</h2>
+          <div className={cn(
+            "w-64 border-r border-border bg-background p-4 md:p-6 flex flex-col gap-4",
+            "fixed md:static h-full z-50 transition-transform duration-300",
+            "md:translate-x-0",
+            isTopicsPanelOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
+          )}>
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg md:text-xl font-semibold text-foreground">Tópicos</h2>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setIsTopicsPanelOpen(false)}
+                className="md:hidden"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
             
             {/* Barra de busca */}
             <div className="relative">
@@ -83,7 +121,7 @@ function HistoryView() {
                 placeholder="Filtrar tópicos..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10"
+                className="pl-10 text-sm md:text-base"
               />
             </div>
 
@@ -114,7 +152,10 @@ function HistoryView() {
               ) : (
                 <>
                   <button
-                    onClick={() => setSelectedTopicId(null)}
+                    onClick={() => {
+                      setSelectedTopicId(null)
+                      setIsTopicsPanelOpen(false)
+                    }}
                     className={cn(
                       'flex items-center justify-between px-3 py-2 rounded-lg text-sm font-medium transition-colors',
                       selectedTopicId === null
@@ -129,7 +170,10 @@ function HistoryView() {
                   {filteredTopics.map((topic) => (
                     <button
                       key={topic.id}
-                      onClick={() => setSelectedTopicId(topic.id)}
+                      onClick={() => {
+                        setSelectedTopicId(topic.id)
+                        setIsTopicsPanelOpen(false)
+                      }}
                       className={cn(
                         'flex items-center justify-between px-3 py-2 rounded-lg text-sm transition-colors',
                         selectedTopicId === topic.id
@@ -147,19 +191,19 @@ function HistoryView() {
           </div>
 
           {/* Painel de Resumos */}
-          <div className="flex-1 p-6 overflow-y-auto relative">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-xl font-semibold text-foreground">Resumos de Conversas</h2>
+          <div className="flex-1 p-3 md:p-6 overflow-y-auto relative">
+            <div className="flex items-center justify-between mb-4 md:mb-6">
+              <h2 className="text-lg md:text-xl font-semibold text-foreground">Resumos de Conversas</h2>
               {/* Indicador de atualização em background */}
               {isFetchingConversations && !isLoadingConversations && (
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  <span>Atualizando...</span>
+                <div className="flex items-center gap-2 text-xs md:text-sm text-muted-foreground">
+                  <Loader2 className="h-3 w-3 md:h-4 md:w-4 animate-spin" />
+                  <span className="hidden md:inline">Atualizando...</span>
                 </div>
               )}
             </div>
             
-            <div className="flex flex-col gap-3 relative">
+            <div className="flex flex-col gap-2 md:gap-3 relative">
               {/* Overlay sutil durante atualização em background */}
               {isFetchingConversations && !isLoadingConversations && conversations.length > 0 && (
                 <div className="absolute inset-0 bg-background/20 backdrop-blur-[1px] z-10 pointer-events-none rounded-lg" />
@@ -196,26 +240,26 @@ function HistoryView() {
               ) : (
                 conversations.map((conversation) => (
                   <Card key={conversation.id} className="border border-border">
-                    <CardContent className="p-4 flex flex-col gap-3">
-                      <div className="flex items-center justify-between">
-                        <h3 className="text-lg font-medium text-foreground">{conversation.title}</h3>
-                        <p className="text-sm text-muted-foreground">{formatRelativeTime(conversation.created_at)}</p>
+                    <CardContent className="p-3 md:p-4 flex flex-col gap-2 md:gap-3">
+                      <div className="flex items-start justify-between gap-2">
+                        <h3 className="text-base md:text-lg font-medium text-foreground flex-1">{conversation.title}</h3>
+                        <p className="text-xs md:text-sm text-muted-foreground shrink-0">{formatRelativeTime(conversation.created_at)}</p>
                       </div>
                       
-                      <p className="text-sm text-foreground leading-relaxed">{conversation.summary}</p>
+                      <p className="text-xs md:text-sm text-foreground leading-relaxed">{conversation.summary}</p>
                       
                       {conversation.topic && (
-                        <div className="flex flex-wrap gap-2 pt-2">
-                          <span className="bg-muted text-muted-foreground px-3 py-1 rounded-full text-xs font-medium">
+                        <div className="flex flex-wrap gap-2 pt-1 md:pt-2">
+                          <span className="bg-muted text-muted-foreground px-2 md:px-3 py-1 rounded-full text-xs font-medium">
                             #{conversation.topic.replace(/\s+/g, '')}
                           </span>
                         </div>
                       )}
                       
-                      <div className="flex justify-end pt-2">
+                      <div className="flex justify-end pt-1 md:pt-2">
                         <Button
                           variant="link"
-                          className="text-primary dark:text-white hover:underline text-sm font-medium p-0 h-auto"
+                          className="text-primary dark:text-white hover:underline text-xs md:text-sm font-medium p-0 h-auto"
                           onClick={() => navigate(`/chat?conversation=${conversation.id}`)}
                         >
                           Revisitar Conversa

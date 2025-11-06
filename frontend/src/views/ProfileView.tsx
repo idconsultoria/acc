@@ -166,43 +166,43 @@ function ProfileView() {
     <div className="flex h-screen w-full">
       <Sidebar />
 
-      <main className="flex flex-1 flex-col h-screen overflow-y-auto bg-background">
-        <div className="p-6 space-y-6 max-w-7xl mx-auto w-full">
+      <main className="flex flex-1 flex-col h-screen overflow-y-auto bg-background md:ml-0">
+        <div className="p-3 md:p-6 space-y-4 md:space-y-6 max-w-7xl mx-auto w-full">
           {/* Header */}
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">Painel de Perfil Personalizado</h1>
-            <p className="text-muted-foreground mt-1">
+            <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Painel de Perfil Personalizado</h1>
+            <p className="text-muted-foreground mt-1 text-sm md:text-base">
               Gerencie suas preferências e acompanhe suas interações com o Agente Cultural
             </p>
           </div>
 
           {/* Profile Card */}
           <Card>
-            <CardContent className="pt-6">
-              <div className="flex flex-col md:flex-row items-center md:items-start gap-6">
-                <Avatar className="h-24 w-24">
-                  <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-600 text-white text-2xl">
+            <CardContent className="pt-4 md:pt-6">
+              <div className="flex flex-col md:flex-row items-center md:items-start gap-4 md:gap-6">
+                <Avatar className="h-20 w-20 md:h-24 md:w-24">
+                  <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-600 text-white text-xl md:text-2xl">
                     CC
                   </AvatarFallback>
                 </Avatar>
                 <div className="flex-1 text-center md:text-left space-y-2">
-                  <h2 className="text-2xl font-bold">{profileName}</h2>
-                  <p className="text-muted-foreground flex items-center gap-2 justify-center md:justify-start">
+                  <h2 className="text-xl md:text-2xl font-bold">{profileName}</h2>
+                  <p className="text-muted-foreground flex items-center gap-2 justify-center md:justify-start text-sm md:text-base">
                     <Mail className="h-4 w-4" />
                     {profileEmail}
                   </p>
-                  <div className="flex flex-wrap gap-4 text-sm text-muted-foreground justify-center md:justify-start">
+                  <div className="flex flex-col md:flex-row flex-wrap gap-2 md:gap-4 text-xs md:text-sm text-muted-foreground justify-center md:justify-start">
                     <span className="flex items-center gap-1">
-                      <Calendar className="h-4 w-4" />
+                      <Calendar className="h-3 w-3 md:h-4 md:w-4" />
                       Ingressou em 15 de Janeiro, 2023
                     </span>
                     <span className="flex items-center gap-1">
-                      <Activity className="h-4 w-4" />
+                      <Activity className="h-3 w-3 md:h-4 md:w-4" />
                       Ativo hoje
                     </span>
                   </div>
                 </div>
-                <Button size="lg" onClick={() => setIsEditDialogOpen(true)}>
+                <Button size="default" className="md:size-lg" onClick={() => setIsEditDialogOpen(true)}>
                   <User className="mr-2 h-4 w-4" />
                   Editar Perfil
                 </Button>
@@ -211,7 +211,7 @@ function ProfileView() {
           </Card>
 
           {/* Statistics Grid */}
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+          <div className="grid gap-4 md:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Conversas Iniciadas</CardTitle>
@@ -322,7 +322,7 @@ function ProfileView() {
           </div>
 
           {/* Charts Section */}
-          <div className="grid gap-6 md:grid-cols-2">
+          <div className="grid gap-4 md:gap-6 grid-cols-1 md:grid-cols-2">
             {/* Weekly Activity */}
             <Card>
               <CardHeader>
@@ -338,23 +338,24 @@ function ProfileView() {
                     <Skeleton className="h-[250px] w-full" />
                   </div>
                 ) : (
-                  <ResponsiveContainer width="100%" height={250}>
+                  <ResponsiveContainer width="100%" height={200} className="md:h-[250px]">
                     <BarChart data={stats.weeklyActivity}>
                       <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
                       <XAxis 
                         dataKey="day" 
                         className="text-xs"
-                        tick={{ fill: 'hsl(var(--muted-foreground))' }}
+                        tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 10 }}
                       />
                       <YAxis 
                         className="text-xs"
-                        tick={{ fill: 'hsl(var(--muted-foreground))' }}
+                        tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 10 }}
                       />
                       <Tooltip 
                         contentStyle={{ 
                           backgroundColor: 'hsl(var(--card))',
                           border: '1px solid hsl(var(--border))',
-                          borderRadius: '0.5rem'
+                          borderRadius: '0.5rem',
+                          fontSize: '12px'
                         }}
                       />
                       <Bar dataKey="messages" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
@@ -379,23 +380,24 @@ function ProfileView() {
                     <Skeleton className="h-[250px] w-full" />
                   </div>
                 ) : (
-                  <ResponsiveContainer width="100%" height={250}>
+                  <ResponsiveContainer width="100%" height={200} className="md:h-[250px]">
                     <LineChart data={stats.monthlyTrend}>
                       <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
                       <XAxis 
                         dataKey="month" 
                         className="text-xs"
-                        tick={{ fill: 'hsl(var(--muted-foreground))' }}
+                        tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 10 }}
                       />
                       <YAxis 
                         className="text-xs"
-                        tick={{ fill: 'hsl(var(--muted-foreground))' }}
+                        tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 10 }}
                       />
                       <Tooltip 
                         contentStyle={{ 
                           backgroundColor: 'hsl(var(--card))',
                           border: '1px solid hsl(var(--border))',
-                          borderRadius: '0.5rem'
+                          borderRadius: '0.5rem',
+                          fontSize: '12px'
                         }}
                       />
                       <Line 
@@ -518,7 +520,7 @@ function ProfileView() {
 
       {/* Edit Profile Dialog */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent className="sm:max-w-[425px]">
+        <DialogContent className="w-[95vw] sm:max-w-[425px]">
           <DialogHeader>
             <DialogTitle>Editar Perfil</DialogTitle>
             <DialogDescription>
