@@ -1,12 +1,24 @@
 import { useState } from 'react'
-import { Link, useLocation } from 'react-router-dom'
-import { FilePenLine, FileText, MessageSquare, Settings, HelpCircle, Shield, Menu, X } from 'lucide-react'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
+import { FilePenLine, FileText, MessageSquare, Settings, HelpCircle, Shield, Menu, X, Bot, Check } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import { cn } from '@/lib/utils'
 
 const AdminSidebar = () => {
   const location = useLocation()
+  const navigate = useNavigate()
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+
+  const isInAdminArea = location.pathname.startsWith('/admin')
+  const isInChatArea = location.pathname === '/' || location.pathname.startsWith('/chat')
 
   const navItems = [
     { icon: FilePenLine, label: 'Instrução do Agente', path: '/admin/instruction' },
@@ -55,11 +67,64 @@ const AdminSidebar = () => {
         )}
       >
         <div className="flex flex-col h-full justify-between p-4">
-          <div className="flex flex-col gap-4">
-            <div className="flex gap-3 items-center pr-8 md:pr-0">
-              <div className="bg-foreground text-background rounded-lg size-10 flex items-center justify-center shrink-0 shadow-lg">
-                <Shield className="h-5 w-5 text-background" strokeWidth={2.5} fill="currentColor" />
-              </div>
+            <div className="flex flex-col gap-4">
+              <div className="flex gap-3 items-center pr-8 md:pr-0 relative">
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <button
+                      type="button"
+                      className={cn(
+                        "bg-foreground text-background rounded-lg size-10 flex items-center justify-center shrink-0 shadow-lg",
+                        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-primary"
+                      )}
+                      aria-label="Trocar de tela"
+                    >
+                      <Shield className="h-5 w-5 text-background" strokeWidth={2.5} fill="currentColor" />
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="start" side="right" className="w-64">
+                    <DropdownMenuLabel>Trocar de tela</DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem
+                      onSelect={() => {
+                        navigate('/admin/instruction')
+                        setIsMobileMenuOpen(false)
+                      }}
+                      className={cn(
+                        "flex items-center gap-3",
+                        isInAdminArea && "bg-accent/40 text-foreground"
+                      )}
+                    >
+                      <Shield className="h-4 w-4 text-foreground" />
+                      <div className="flex flex-col">
+                        <span className="text-sm font-semibold leading-tight">Painel do Guardião</span>
+                        <span className="text-xs text-muted-foreground leading-tight">Curadoria e aprendizado do agente</span>
+                      </div>
+                      {isInAdminArea ? (
+                        <Check className="ml-auto h-4 w-4 text-primary" />
+                      ) : null}
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onSelect={() => {
+                        navigate('/chat')
+                        setIsMobileMenuOpen(false)
+                      }}
+                      className={cn(
+                        "flex items-center gap-3",
+                        isInChatArea && "bg-accent/40 text-foreground"
+                      )}
+                    >
+                      <Bot className="h-4 w-4 text-primary" />
+                      <div className="flex flex-col">
+                        <span className="text-sm font-medium leading-tight">Espaço do Colaborador</span>
+                        <span className="text-xs text-muted-foreground leading-tight">Chat e experiência do usuário</span>
+                      </div>
+                      {isInChatArea ? (
+                        <Check className="ml-auto h-4 w-4 text-primary" />
+                      ) : null}
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               <div className="flex flex-col flex-1 min-w-0">
                 <h1 className="text-foreground text-base font-bold leading-normal">Guardião Cultural</h1>
                 <p className="text-muted-foreground text-xs font-normal leading-normal">Painel de Administração</p>
