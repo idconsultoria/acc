@@ -306,18 +306,24 @@ class TestRelevantKnowledge:
             content="Aprendizado",
             embedding=Embedding(vector=[0.1] * 100),
             source_feedback_id=FeedbackId(uuid.uuid4()),
-            created_at=datetime.utcnow()
+            created_at=datetime.utcnow(),
+            relevance_weight=0.9,
+            last_used_at=datetime.utcnow(),
         )
         
         knowledge = RelevantKnowledge(
             relevant_artifacts=[artifact_chunk],
-            relevant_learnings=[learning]
+            relevant_learnings=[learning],
+            artifact_scores={artifact_chunk.id: 0.8},
+            learning_scores={learning.id: 1.2},
         )
         
         assert len(knowledge.relevant_artifacts) == 1
         assert len(knowledge.relevant_learnings) == 1
         assert knowledge.relevant_artifacts[0] == artifact_chunk
         assert knowledge.relevant_learnings[0] == learning
+        assert knowledge.artifact_scores[artifact_chunk.id] == 0.8
+        assert knowledge.learning_scores[learning.id] == 1.2
     
     def test_relevant_knowledge_empty(self):
         """Testa RelevantKnowledge vazio."""
@@ -328,3 +334,5 @@ class TestRelevantKnowledge:
         
         assert len(knowledge.relevant_artifacts) == 0
         assert len(knowledge.relevant_learnings) == 0
+        assert knowledge.artifact_scores == {}
+        assert knowledge.learning_scores == {}

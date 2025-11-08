@@ -125,6 +125,33 @@ export interface Learning {
   content: string
   source_feedback_id: string
   created_at: string
+  relevance_weight?: number | null
+  last_used_at?: string | null
+}
+
+export interface LearningWeightUpdate {
+  learning_id: string
+  relevance_weight: number
+}
+
+export interface RecalculateLearningWeightsResponse {
+  updated_learning_ids: string[]
+  recalculated_at: string
+}
+
+export interface MergeLearningsResponse {
+  merged_learning: Learning
+  archived_learning_ids: string[]
+}
+
+export interface LearningMergeCandidate {
+  base_learning: Learning
+  duplicate_learnings: Learning[]
+  similarity_score?: number | null
+}
+
+export interface DeduplicateLearningsResponse {
+  candidates: LearningMergeCandidate[]
 }
 
 export interface AgentInstruction {
@@ -261,6 +288,37 @@ export const api = {
   // Learnings
   listLearnings: async (): Promise<Learning[]> => {
     const response = await apiClient.get('/learnings')
+    return response.data
+  },
+  
+  updateLearningWeights: async (updates: LearningWeightUpdate[]): Promise<RecalculateLearningWeightsResponse> => {
+    const response = await apiClient.post('/learnings/weights', { updates })
+    return response.data
+  },
+  
+  recalculateLearningWeights: async (): Promise<RecalculateLearningWeightsResponse> => {
+    const response = await apiClient.post('/learnings/recalculate')
+    return response.data
+  },
+  
+  mergeLearnings: async (learning_ids: string[], merged_content: string, merged_weight?: number): Promise<MergeLearningsResponse> => {
+    const response = await apiClient.post('/learnings/merge', {
+      learning_ids,
+      merged_content,
+      merged_weight,
+    })
+    return response.data
+  },
+  
+  getLearningDedupCandidates: async (similarity_threshold?: number, limit?: number): Promise<DeduplicateLearningsResponse> => {
+    const payload: { similarity_threshold?: number; limit?: number } = {}
+    if (similarity_threshold !== undefined) {
+      payload.similarity_threshold = similarity_threshold
+    }
+    if (limit !== undefined) {
+      payload.limit = limit
+    }
+    const response = await apiClient.post('/learnings/deduplicate', payload)
     return response.data
   },
   

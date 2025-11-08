@@ -6,7 +6,11 @@ from app.api.dto import (
     ArtifactDTO, UpdateArtifactPayload, UpdateArtifactTagsPayload,
     CitedSourceDTO, MessageDTO, CreateMessagePayload,
     PendingFeedbackDTO, SubmitFeedbackPayload,
-    LearningDTO, AgentInstructionDTO, UpdateAgentInstructionPayload,
+    LearningDTO, LearningWeightUpdateDTO, UpdateLearningWeightsPayload,
+    MergeLearningsPayload, MergeLearningsResponse,
+    LearningMergeCandidateDTO, DeduplicateLearningsPayload,
+    DeduplicateLearningsResponse, RecalculateLearningWeightsResponse,
+    AgentInstructionDTO, UpdateAgentInstructionPayload,
     TopicDTO, ConversationSummaryDTO, ConversationTopicDTO,
     BatchFeedbackRequestDTO, ErrorDTO
 )
@@ -223,17 +227,137 @@ class TestLearningDTO:
         learning_id = UUID('12345678-1234-5678-1234-567812345678')
         feedback_id = UUID('87654321-4321-8765-4321-876543218765')
         
+        last_used = datetime.utcnow()
         dto = LearningDTO(
             id=learning_id,
             content="Aprendizado de teste",
             source_feedback_id=feedback_id,
-            created_at=datetime.utcnow()
+            created_at=datetime.utcnow(),
+            relevance_weight=0.85,
+            last_used_at=last_used,
         )
         
         assert dto.id == learning_id
         assert dto.content == "Aprendizado de teste"
         assert dto.source_feedback_id == feedback_id
+        assert dto.relevance_weight == 0.85
+        assert dto.last_used_at == last_used
 
+
+class TestLearningWeightDTOs:
+    """Testes para DTOs relacionados a pesos de aprendizados."""
+
+    def test_learning_weight_update_dto(self):
+        """Testa criação de LearningWeightUpdateDTO."""
+        dto = LearningWeightUpdateDTO(
+            learning_id=UUID("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"),
+            relevance_weight=0.95,
+        )
+        assert dto.learning_id == UUID("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa")
+        assert dto.relevance_weight == 0.95
+
+    def test_update_learning_weights_payload(self):
+        """Testa payload de atualização de pesos."""
+        payload = UpdateLearningWeightsPayload(
+            updates=[
+                LearningWeightUpdateDTO(
+                    learning_id=UUID("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb"),
+                    relevance_weight=0.8,
+                )
+            ]
+        )
+        assert len(payload.updates) == 1
+        assert payload.updates[0].relevance_weight == 0.8
+
+
+class TestLearningMergeDTOs:
+    """Testes para DTOs de merge e deduplicação de aprendizados."""
+
+    def test_merge_learnings_payload(self):
+        """Testa payload de merge."""
+        payload = MergeLearningsPayload(
+            learning_ids=[
+                UUID("11111111-1111-1111-1111-111111111111"),
+                UUID("22222222-2222-2222-2222-222222222222"),
+            ],
+            merged_content="Conteúdo unificado",
+            merged_weight=0.9,
+        )
+        assert len(payload.learning_ids) == 2
+        assert payload.merged_content == "Conteúdo unificado"
+        assert payload.merged_weight == 0.9
+
+    def test_merge_learnings_response(self):
+        """Testa resposta de merge."""
+        merged_learning = LearningDTO(
+            id=UUID("33333333-3333-3333-3333-333333333333"),
+            content="Aprendizado resultante",
+            source_feedback_id=UUID("44444444-4444-4444-4444-444444444444"),
+            created_at=datetime.utcnow(),
+            relevance_weight=0.92,
+        )
+        response = MergeLearningsResponse(
+            merged_learning=merged_learning,
+            archived_learning_ids=[UUID("11111111-1111-1111-1111-111111111111")],
+        )
+        assert response.merged_learning == merged_learning
+        assert response.archived_learning_ids == [UUID("11111111-1111-1111-1111-111111111111")]
+
+    def test_learning_merge_candidate_dto(self):
+        """Testa DTO de candidato a merge."""
+        base_learning = LearningDTO(
+            id=UUID("55555555-5555-5555-5555-555555555555"),
+            content="Base",
+            source_feedback_id=UUID("66666666-6666-6666-6666-666666666666"),
+            created_at=datetime.utcnow(),
+        )
+        duplicate_learning = LearningDTO(
+            id=UUID("77777777-7777-7777-7777-777777777777"),
+            content="Duplicado",
+            source_feedback_id=UUID("88888888-8888-8888-8888-888888888888"),
+            created_at=datetime.utcnow(),
+        )
+        dto = LearningMergeCandidateDTO(
+            base_learning=base_learning,
+            duplicate_learnings=[duplicate_learning],
+            similarity_score=0.91,
+        )
+        assert dto.similarity_score == 0.91
+        assert dto.duplicate_learnings[0].content == "Duplicado"
+
+    def test_deduplicate_learnings_payload(self):
+        """Testa payload de deduplicação."""
+        payload = DeduplicateLearningsPayload(similarity_threshold=0.9, limit=10)
+        assert payload.similarity_threshold == 0.9
+        assert payload.limit == 10
+
+    def test_deduplicate_learnings_response(self):
+        """Testa resposta de deduplicação."""
+        base_learning = LearningDTO(
+            id=UUID("99999999-9999-9999-9999-999999999999"),
+            content="Base",
+            source_feedback_id=UUID("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"),
+            created_at=datetime.utcnow(),
+        )
+        response = DeduplicateLearningsResponse(
+            candidates=[
+                LearningMergeCandidateDTO(
+                    base_learning=base_learning,
+                    duplicate_learnings=[],
+                    similarity_score=0.87,
+                )
+            ]
+        )
+        assert len(response.candidates) == 1
+        assert response.candidates[0].similarity_score == 0.87
+
+    def test_recalculate_learning_weights_response(self):
+        """Testa resposta de recálculo de pesos."""
+        response = RecalculateLearningWeightsResponse(
+            updated_learning_ids=[UUID("abababab-abab-abab-abab-abababababab")],
+            recalculated_at=datetime.utcnow(),
+        )
+        assert len(response.updated_learning_ids) == 1
 
 class TestAgentInstructionDTO:
     """Testes para AgentInstructionDTO."""

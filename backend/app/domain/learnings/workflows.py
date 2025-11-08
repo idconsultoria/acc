@@ -2,8 +2,8 @@
 from typing import Protocol
 from datetime import datetime
 from app.domain.learnings.types import Learning
-from app.domain.feedbacks.types import PendingFeedback
-from app.domain.shared_kernel import LearningId, FeedbackId, Embedding
+from app.domain.feedbacks.types import PendingFeedback, FeedbackType
+from app.domain.shared_kernel import LearningId, Embedding
 import uuid
 
 
@@ -62,9 +62,20 @@ async def synthesize_learning_from_feedback(
         content=learning_content,
         embedding=embedding,
         source_feedback_id=feedback.id,
-        created_at=datetime.utcnow()
+        created_at=datetime.utcnow(),
+        relevance_weight=_compute_initial_weight(feedback.feedback_type),
+        last_used_at=None,
     )
     
     # Persiste o aprendizado
     return await learning_repo.save(learning)
+
+
+def _compute_initial_weight(feedback_type: FeedbackType) -> float:
+    """Calcula peso inicial baseado no tipo de feedback."""
+    if feedback_type == "POSITIVE":
+        return 1.0
+    if feedback_type == "NEGATIVE":
+        return 0.4
+    return 0.7
 

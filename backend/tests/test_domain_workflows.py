@@ -1,6 +1,6 @@
 """Testes para workflows de domínio."""
 import pytest
-from datetime import datetime
+from datetime import datetime, timedelta
 from unittest.mock import Mock, AsyncMock
 from app.domain.artifacts.workflows import (
     chunk_text, create_artifact_from_text, create_artifact_from_pdf
@@ -13,6 +13,7 @@ from app.domain.agent.workflows import (
     get_agent_instruction, update_agent_instruction
 )
 from app.domain.learnings.workflows import synthesize_learning_from_feedback
+from app.domain.learnings.weighter import LearningWeighter
 from app.domain.feedbacks.types import FeedbackStatus
 from app.domain.shared_kernel import MessageId, FeedbackId, LearningId
 from app.domain.agent.types import AgentInstruction
@@ -422,7 +423,8 @@ class TestSynthesizeLearningFromFeedback:
             message_id=MessageId(uuid.uuid4()),
             feedback_text="Feedback de teste",
             status=FeedbackStatus.APPROVED,
-            created_at=datetime.utcnow()
+            created_at=datetime.utcnow(),
+            feedback_type="POSITIVE",
         )
         
         mock_learning_repo = AsyncMock()
@@ -451,3 +453,47 @@ class TestSynthesizeLearningFromFeedback:
         mock_llm_service.synthesize_learning.assert_called_once_with("Feedback de teste")
         mock_embedding_generator.generate.assert_called_once()
         mock_learning_repo.save.assert_called_once()
+        saved_learning = mock_learning_repo.save.call_args[0][0]
+        assert saved_learning.relevance_weight == 1.0
+        assert saved_learning.last_used_at is None
+
+
+class TestLearningWeighter:
+    """Testes para LearningWeighter."""
+
+    @pytest.mark.asyncio
+    async def test_recalculate(self):
+        """Garante que o recálculo atualiza pesos dinamicamente."""
+        repository = AsyncMock()
+        now = datetime.utcnow()
+
+        recent_learning = Learning(
+            id=LearningId(uuid.uuid4()),
+            content="Recent Learning",
+            embedding=Mock(),
+            source_feedback_id=FeedbackId(uuid.uuid4()),
+            created_at=now - timedelta(days=10),
+            relevance_weight=1.0,
+            last_used_at=now - timedelta(days=3),
+        )
+        stale_learning = Learning(
+            id=LearningId(uuid.uuid4()),
+            content="Stale Learning",
+            embedding=Mock(),
+            source_feedback_id=FeedbackId(uuid.uuid4()),
+            created_at=now - timedelta(days=200),
+            relevance_weight=0.5,
+            last_used_at=None,
+        )
+
+        repository.find_all.return_value = [recent_learning, stale_learning]
+        repository.update_weights = AsyncMock()
+
+        weighter = LearningWeighter(repository=repository)
+        updates = await weighter.recalculate(now=now)
+
+        repository.find_all.assert_awaited_once()
+        repository.update_weights.assert_awaited_once()
+        assert len(updates) == 2
+        assert recent_learning.id in updates
+        assert stale_learning.id in updates

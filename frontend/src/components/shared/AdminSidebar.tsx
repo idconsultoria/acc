@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
-import { FilePenLine, FileText, MessageSquare, Settings, HelpCircle, Shield, Menu, X, Bot, Check } from 'lucide-react'
+import { FilePenLine, FileText, MessageSquare, Settings, HelpCircle, Shield, Menu, X, Bot, Check, Brain } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
@@ -23,6 +23,7 @@ const AdminSidebar = () => {
   const navItems = [
     { icon: FilePenLine, label: 'Instrução do Agente', path: '/admin/instruction' },
     { icon: FileText, label: 'Artefatos Culturais', path: '/admin/artifacts' },
+    { icon: Brain, label: 'Aprendizados', path: '/admin/learnings' },
     { icon: MessageSquare, label: 'Revisão de Feedback', path: '/admin/feedbacks' },
   ]
 

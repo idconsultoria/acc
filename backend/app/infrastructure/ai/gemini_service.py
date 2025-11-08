@@ -6,6 +6,7 @@ from app.domain.agent.types import AgentInstruction
 from app.domain.conversations.types import Message
 from app.domain.artifacts.types import ArtifactChunk
 from app.domain.learnings.types import Learning
+from app.domain.shared_kernel import ChunkId, LearningId
 
 
 async def get_gemini_api_key() -> str:
@@ -24,13 +25,18 @@ async def get_gemini_api_key() -> str:
 
 class RelevantKnowledge:
     """Representa o conhecimento relevante encontrado."""
+
     def __init__(
         self,
         relevant_artifacts: list[ArtifactChunk],
-        relevant_learnings: list[Learning]
+        relevant_learnings: list[Learning],
+        artifact_scores: dict[ChunkId, float] | None = None,
+        learning_scores: dict[LearningId, float] | None = None,
     ):
         self.relevant_artifacts = relevant_artifacts
         self.relevant_learnings = relevant_learnings
+        self.artifact_scores = artifact_scores or {}
+        self.learning_scores = learning_scores or {}
 
 
 class GeminiService:
@@ -88,8 +94,25 @@ class GeminiService:
         
         # Constrói o contexto dos aprendizados
         learnings_context = ""
-        for learning in knowledge.relevant_learnings[:3]:  # Limita a 3 aprendizados
-            learnings_context += f"\n\n--- Aprendizado ---\n{learning.content}\n"
+        learning_scores = getattr(knowledge, "learning_scores", {}) or {}
+        sorted_learnings = sorted(
+            knowledge.relevant_learnings,
+            key=lambda learning: learning_scores.get(learning.id, learning.relevance_weight or 0.0),
+            reverse=True,
+        )
+        for idx, learning in enumerate(sorted_learnings[:3], start=1):
+            weight = learning.relevance_weight
+            combined_score = learning_scores.get(learning.id)
+            last_used = learning.last_used_at.strftime("%Y-%m-%d %H:%M") if getattr(learning, "last_used_at", None) else "Nunca utilizado"
+            created_at = learning.created_at.strftime("%Y-%m-%d %H:%M")
+            weight_str = f"{(weight if weight is not None else (combined_score if combined_score is not None else 0.7)):.2f}"
+            score_line = f"• Score combinado: {combined_score:.2f}" if combined_score is not None else ""
+            learnings_context += (
+                f"\n\n🧠 Insight Relevante #{idx}\n"
+                f"> Peso atual: {weight_str} • Último uso: {last_used}\n"
+                f"> Criado em: {created_at} {score_line}\n"
+                f"{learning.content.strip()}\n"
+            )
         
         # Constrói o histórico da conversa
         conversation_context = ""

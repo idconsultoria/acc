@@ -18,11 +18,11 @@ with patch('supabase.create_client') as mock_create:
     mock_client = Mock()
     mock_create.return_value = mock_client
     from app.main import app
-from app.domain.shared_kernel import ArtifactId, ConversationId, MessageId, FeedbackId
+from app.domain.shared_kernel import ArtifactId, ConversationId, MessageId, FeedbackId, LearningId, Embedding
 from app.domain.artifacts.types import Artifact, ArtifactChunk, ArtifactSourceType, ChunkMetadata
 from app.domain.conversations.types import Conversation, Message, Author
 from app.domain.feedbacks.types import PendingFeedback, FeedbackStatus
-from app.domain.learnings.types import Learning
+from app.domain.learnings.types import Learning, LearningMergeCandidate
 from app.domain.agent.types import AgentInstruction
 
 
@@ -409,7 +409,8 @@ class TestFeedbacksRoutes:
             content="Aprendizado sintetizado",
             embedding=Embedding(vector=[0.1] * 100),
             source_feedback_id=feedback_id,
-            created_at=datetime.utcnow()
+            created_at=datetime.utcnow(),
+            relevance_weight=0.75,
         )
         
         mock_feedback_repo.find_by_id = AsyncMock(return_value=feedback)
@@ -435,6 +436,78 @@ class TestLearningsRoutes:
         assert response.status_code == 200
         data = response.json()
         assert isinstance(data, list)
+
+    @pytest.mark.asyncio
+    @patch('app.api.routes.learnings.learnings_repo')
+    async def test_update_learning_weights(self, mock_repo, client):
+        """Testa atualização manual de pesos."""
+        mock_repo.update_weights = AsyncMock()
+        payload = {
+            "updates": [
+                {
+                    "learning_id": str(uuid.uuid4()),
+                    "relevance_weight": 0.95,
+                }
+            ]
+        }
+        response = client.post("/api/v1/learnings/weights", json=payload)
+        assert response.status_code == 200
+        mock_repo.update_weights.assert_awaited_once()
+
+    @pytest.mark.asyncio
+    @patch('app.api.routes.learnings.learning_weighter')
+    async def test_recalculate_learning_weights(self, mock_weighter, client):
+        """Testa recálculo dinâmico de pesos."""
+        mock_weighter.recalculate = AsyncMock(return_value={LearningId(uuid.uuid4()): 0.8})
+        response = client.post("/api/v1/learnings/recalculate")
+        assert response.status_code == 200
+        mock_weighter.recalculate.assert_awaited_once()
+
+    @pytest.mark.asyncio
+    @patch('app.api.routes.learnings.learnings_repo')
+    async def test_merge_learnings(self, mock_repo, client):
+        """Testa merge de aprendizados."""
+        learning_id_a = LearningId(uuid.uuid4())
+        learning_id_b = LearningId(uuid.uuid4())
+        merged_learning = Learning(
+            id=LearningId(uuid.uuid4()),
+            content="Merged",
+            embedding=Embedding(vector=[0.1, 0.2]),
+            source_feedback_id=FeedbackId(uuid.uuid4()),
+            created_at=datetime.utcnow(),
+            relevance_weight=0.9,
+        )
+        mock_repo.merge = AsyncMock(return_value=merged_learning)
+
+        payload = {
+            "learning_ids": [str(learning_id_a), str(learning_id_b)],
+            "merged_content": "Merged",
+            "merged_weight": 0.9,
+        }
+        response = client.post("/api/v1/learnings/merge", json=payload)
+        assert response.status_code == 200
+        mock_repo.merge.assert_awaited_once()
+
+    @pytest.mark.asyncio
+    @patch('app.api.routes.learnings.learnings_repo')
+    async def test_deduplicate_learnings(self, mock_repo, client):
+        """Testa sugestão de deduplicação."""
+        candidate = LearningMergeCandidate(
+            base_learning=Learning(
+                id=LearningId(uuid.uuid4()),
+                content="Base",
+                embedding=Embedding(vector=[0.1, 0.2]),
+                source_feedback_id=FeedbackId(uuid.uuid4()),
+                created_at=datetime.utcnow(),
+                relevance_weight=0.9,
+            ),
+            duplicate_learnings=[],
+            similarity_score=0.88,
+        )
+        mock_repo.suggest_merge_candidates = AsyncMock(return_value=[candidate])
+        response = client.post("/api/v1/learnings/deduplicate", json={})
+        assert response.status_code == 200
+        mock_repo.suggest_merge_candidates.assert_awaited_once()
 
 
 class TestTopicsRoutes:

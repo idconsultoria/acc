@@ -328,6 +328,8 @@ class TestLearning:
         assert learning.content == "Conteúdo do aprendizado"
         assert learning.embedding == sample_embedding
         assert learning.source_feedback_id == feedback_id
+        assert learning.relevance_weight is None
+        assert learning.last_used_at is None
 
 
 class TestAgentInstruction:
