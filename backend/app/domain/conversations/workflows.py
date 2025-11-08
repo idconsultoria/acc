@@ -31,7 +31,8 @@ class LLMService(Protocol):
         instruction: AgentInstruction,
         conversation_history: list[Message],
         knowledge: RelevantKnowledge,
-        user_query: str
+        user_query: str,
+        progress_emitter: "ProgressEmitter | None" = None
     ) -> tuple[str, list[ArtifactChunk]]:
         """
         Gera conselho cultural baseado no contexto.
@@ -49,6 +50,26 @@ class EmbeddingGenerator(Protocol):
         ...
 
 
+class ProgressEmitter(Protocol):
+    """Interface para emissão de eventos de progresso durante o workflow."""
+
+    async def phase_start(self, phases: list[dict[str, str]]) -> None:
+        """Emite evento inicial com as fases do pipeline."""
+        ...
+
+    async def phase_update(self, phase: str, data: dict[str, object] | None = None) -> None:
+        """Atualiza o status ou metadados de uma fase."""
+        ...
+
+    async def phase_complete(self, phase: str, data: dict[str, object] | None = None) -> None:
+        """Marca a conclusão de uma fase."""
+        ...
+
+    async def emit_token(self, token: str) -> None:
+        """Emite um token gerado pelo modelo."""
+        ...
+
+
 # --- Assinatura do Workflow Principal ---
 
 async def continue_conversation(
@@ -57,7 +78,8 @@ async def continue_conversation(
     embedding_generator: EmbeddingGenerator,
     knowledge_repo: KnowledgeRepository,
     llm_service: LLMService,
-    agent_instruction: AgentInstruction
+    agent_instruction: AgentInstruction,
+    progress_emitter: ProgressEmitter | None = None
 ) -> Conversation:
     """
     Orquestra a continuação de uma conversa, gerando a resposta do agente.
@@ -67,19 +89,54 @@ async def continue_conversation(
     4. Adiciona a mensagem do usuário e a resposta do agente à conversa.
     5. Retorna o novo estado da conversa.
     """
+    phases_definition = [
+        {"id": "embedding", "label": "Geração de embedding"},
+        {"id": "retrieval", "label": "Busca de conhecimento"},
+        {"id": "prompt_build", "label": "Construção do prompt"},
+        {"id": "llm_stream", "label": "Geração da resposta"},
+        {"id": "post_process", "label": "Pós-processamento"},
+    ]
+
+    if progress_emitter:
+        await progress_emitter.phase_start(phases_definition)
+        await progress_emitter.phase_update("embedding", {"status": "running"})
+
     # Gera embedding para a consulta do usuário
     query_embedding = embedding_generator.generate(user_query)
+
+    if progress_emitter:
+        await progress_emitter.phase_complete(
+            "embedding",
+            {
+                "vector_length": len(query_embedding),
+            },
+        )
+        await progress_emitter.phase_update("retrieval", {"status": "running"})
     
     # Busca conhecimento relevante
     knowledge = await knowledge_repo.find_relevant_knowledge(user_query, query_embedding)
+
+    if progress_emitter:
+        await progress_emitter.phase_complete(
+            "retrieval",
+            {
+                "chunks": len(knowledge.relevant_artifacts),
+                "learnings": len(knowledge.relevant_learnings),
+            },
+        )
+        await progress_emitter.phase_update("prompt_build", {"status": "running"})
     
     # Gera a resposta do agente
     agent_content, cited_chunks = await llm_service.generate_advice(
         instruction=agent_instruction,
         conversation_history=conversation.messages,
         knowledge=knowledge,
-        user_query=user_query
+        user_query=user_query,
+        progress_emitter=progress_emitter
     )
+
+    if progress_emitter:
+        await progress_emitter.phase_update("post_process", {"status": "running"})
     
     # Cria mensagem do usuário
     user_message = Message(
@@ -116,6 +173,14 @@ async def continue_conversation(
         cited_sources=cited_sources,
         created_at=datetime.utcnow()
     )
+
+    if progress_emitter:
+        await progress_emitter.phase_complete(
+            "post_process",
+            {
+                "cited_sources": len(cited_sources),
+            },
+        )
     
     # Adiciona as mensagens à conversa
     new_messages = conversation.messages + [user_message, agent_message]

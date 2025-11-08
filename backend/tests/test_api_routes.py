@@ -1,4 +1,5 @@
 """Testes para rotas da API."""
+import asyncio
 import pytest
 from fastapi.testclient import TestClient
 from unittest.mock import Mock, AsyncMock, patch, MagicMock
@@ -18,6 +19,8 @@ with patch('supabase.create_client') as mock_create:
     mock_client = Mock()
     mock_create.return_value = mock_client
     from app.main import app
+from app.api.dto import MessageDTO
+from app.api.routes.conversations import SSEProgressEmitter
 from app.domain.shared_kernel import ArtifactId, ConversationId, MessageId, FeedbackId
 from app.domain.artifacts.types import Artifact, ArtifactChunk, ArtifactSourceType, ChunkMetadata
 from app.domain.conversations.types import Conversation, Message, Author
@@ -293,6 +296,95 @@ class TestConversationsRoutes:
             assert "topic" in data
             assert "is_processing" in data
 
+    @pytest.mark.asyncio
+    @patch('app.api.routes.conversations._classify_conversation_if_needed', new_callable=AsyncMock)
+    @patch('app.api.routes.conversations.agent_settings_repo')
+    @patch('app.api.routes.conversations.conversations_repo')
+    async def test_post_message_stream_emits_events(self, mock_repo, mock_agent_settings, mock_classify, client):
+        """Garante que a rota de streaming emite eventos SSE."""
+        conversation_id = ConversationId(uuid.uuid4())
+        base_conversation = Conversation(
+            id=conversation_id,
+            messages=[],
+            created_at=datetime.utcnow()
+        )
+
+        mock_repo.find_by_id = AsyncMock(return_value=base_conversation)
+        mock_repo.save_messages = AsyncMock(return_value=None)
+        mock_classify.return_value = None
+
+        instruction = AgentInstruction(
+            content="Instrução de teste",
+            updated_at=datetime.utcnow()
+        )
+        mock_agent_settings.get_instruction = AsyncMock(return_value=instruction)
+
+        async def fake_continue_conversation(
+            *,
+            conversation,
+            user_query,
+            embedding_generator,
+            knowledge_repo,
+            llm_service,
+            agent_instruction,
+            progress_emitter=None,
+        ):
+            if progress_emitter:
+                await progress_emitter.phase_start(
+                    [
+                        {"id": "embedding", "label": "Embedding"},
+                        {"id": "llm_stream", "label": "LLM"},
+                        {"id": "post_process", "label": "Pós-processamento"},
+                    ]
+                )
+                await progress_emitter.phase_update("embedding", {"status": "running"})
+                await progress_emitter.phase_complete("embedding", {"vector_length": 3})
+                await progress_emitter.phase_update("llm_stream", {"status": "running"})
+                await progress_emitter.emit_token("Olá ")
+                await progress_emitter.emit_token("mundo!")
+                await progress_emitter.phase_complete("llm_stream", {"tokens_emitted": 2})
+                await progress_emitter.phase_update("post_process", {"status": "running"})
+                await progress_emitter.phase_complete("post_process", {"cited_sources": 0})
+
+            user_message = Message(
+                id=MessageId(uuid.uuid4()),
+                conversation_id=conversation.id,
+                author=Author.USER,
+                content=user_query,
+                cited_sources=[],
+                created_at=datetime.utcnow(),
+            )
+            agent_message = Message(
+                id=MessageId(uuid.uuid4()),
+                conversation_id=conversation.id,
+                author=Author.AGENT,
+                content="Olá mundo!",
+                cited_sources=[],
+                created_at=datetime.utcnow(),
+            )
+
+            return Conversation(
+                id=conversation.id,
+                messages=[*conversation.messages, user_message, agent_message],
+                created_at=conversation.created_at,
+            )
+
+        with patch('app.api.routes.conversations.continue_conversation', side_effect=fake_continue_conversation):
+            stream_url = f"/api/v1/conversations/{conversation_id}/messages/stream"
+            with client.stream("POST", stream_url, json={"content": "Olá"}) as response:
+                assert response.status_code == 200
+                payload_lines = [
+                    line.decode() if isinstance(line, bytes) else line
+                    for line in response.iter_lines()
+                ]
+
+        event_lines = [line for line in payload_lines if line.startswith("event:")]
+        assert any("phase:start" in line for line in event_lines)
+        assert any("token" in line for line in event_lines)
+        assert any("message:complete" in line for line in event_lines)
+        mock_repo.save_messages.assert_awaited_once()
+        mock_classify.assert_awaited()
+
 
 class TestAgentRoutes:
     """Testes para rotas do agente."""
@@ -518,3 +610,35 @@ class TestSettingsRoutes:
             json={"api_key": ""}
         )
         assert response.status_code == 200
+
+
+@pytest.mark.asyncio
+async def test_sse_progress_emitter_collects_events():
+    """Valida que o SSEProgressEmitter enfileira eventos corretamente."""
+    emitter = SSEProgressEmitter()
+
+    async def collect_events():
+        items = []
+        async for event in emitter.listen():
+            items.append(event)
+        return items
+
+    collector = asyncio.create_task(collect_events())
+
+    await emitter.phase_start([{"id": "embedding", "label": "Embedding"}])
+    await emitter.emit_token("token-1")
+    message_dto = MessageDTO(
+        id=uuid.uuid4(),
+        conversation_id=uuid.uuid4(),
+        author="AGENT",
+        content="Resposta final",
+        cited_sources=[],
+        created_at=datetime.utcnow(),
+    )
+    await emitter.message_complete(message_dto)
+    await emitter.finish()
+
+    events = await collector
+    assert events[0]["event"] == "phase:start"
+    assert events[1]["event"] == "token"
+    assert events[-1]["event"] == "message:complete"

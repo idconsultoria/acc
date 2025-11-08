@@ -24,6 +24,227 @@ export const apiClient = axios.create({
   timeout: 30000, // 30 segundos de timeout para dar tempo do cold start
 })
 
+export interface RagPhaseDefinition {
+  id: string
+  label: string
+}
+
+export interface RagPhaseUpdatePayload {
+  phase: string
+  [key: string]: unknown
+}
+
+export interface StreamHandlers {
+  onPhaseStart?(payload: { phases: RagPhaseDefinition[] }): void
+  onPhaseUpdate?(payload: RagPhaseUpdatePayload): void
+  onPhaseComplete?(payload: RagPhaseUpdatePayload): void
+  onToken?(payload: { value: string }): void
+  onMessageComplete?(payload: Message): void
+  onError?(error: Error): void
+  onClose?(): void
+}
+
+export interface StreamController {
+  close: () => void
+  completed: Promise<void>
+}
+
+const streamConversationMessage = (
+  conversationId: string,
+  content: string,
+  handlers: StreamHandlers
+): StreamController => {
+  const controller = new AbortController()
+  const url = `${API_BASE_URL}/conversations/${conversationId}/messages/stream`
+  let finished = false
+  let resolveCompletion: (() => void) | null = null
+  let rejectCompletion: ((reason?: unknown) => void) | null = null
+
+  const completed = new Promise<void>((resolve, reject) => {
+    resolveCompletion = resolve
+    rejectCompletion = reject
+  })
+
+  const resolveOnce = () => {
+    if (!finished && resolveCompletion) {
+      finished = true
+      resolveCompletion()
+    }
+  }
+
+  const rejectOnce = (reason: unknown) => {
+    if (!finished && rejectCompletion) {
+      finished = true
+      rejectCompletion(reason)
+    }
+  }
+
+  const dispatchEvent = (eventName: string, payload: any) => {
+    switch (eventName) {
+      case 'phase:start':
+        handlers.onPhaseStart?.(payload as { phases: RagPhaseDefinition[] })
+        break
+      case 'phase:update':
+        handlers.onPhaseUpdate?.(payload as RagPhaseUpdatePayload)
+        break
+      case 'phase:complete':
+        handlers.onPhaseComplete?.(payload as RagPhaseUpdatePayload)
+        break
+      case 'token':
+        handlers.onToken?.(payload as { value: string })
+        break
+      case 'message:complete':
+        handlers.onMessageComplete?.(payload as Message)
+        resolveOnce()
+        break
+      case 'error': {
+        const detail = payload?.detail
+        const error = new Error(detail ? String(detail) : 'Erro no streaming de mensagens')
+        handlers.onError?.(error)
+        rejectOnce(error)
+        break
+      }
+      default:
+        break
+    }
+  }
+
+  const processBuffer = (input: string, flush = false): string => {
+    let buffer = input
+    let boundary = buffer.indexOf('\n\n')
+
+    while (boundary !== -1) {
+      const rawEvent = buffer.slice(0, boundary).trim()
+      buffer = buffer.slice(boundary + 2)
+
+      if (rawEvent) {
+        const lines = rawEvent.split('\n')
+        let eventName = ''
+        let dataBuffer = ''
+
+        for (const line of lines) {
+          if (line.startsWith('event:')) {
+            eventName = line.slice(6).trim()
+          } else if (line.startsWith('data:')) {
+            dataBuffer += line.slice(5).trim()
+          }
+        }
+
+        if (eventName) {
+          let parsedPayload: any = {}
+          if (dataBuffer) {
+            try {
+              parsedPayload = JSON.parse(dataBuffer)
+            } catch (error) {
+              const parsingError = new Error('Não foi possível interpretar dados de streaming')
+              handlers.onError?.(parsingError)
+              rejectOnce(parsingError)
+              return ''
+            }
+          }
+          dispatchEvent(eventName, parsedPayload)
+        }
+      }
+
+      boundary = buffer.indexOf('\n\n')
+    }
+
+    if (flush && buffer.trim().length > 0) {
+      const leftover = buffer.trim()
+      buffer = ''
+      const lines = leftover.split('\n')
+      let eventName = ''
+      let dataBuffer = ''
+      for (const line of lines) {
+        if (line.startsWith('event:')) {
+          eventName = line.slice(6).trim()
+        } else if (line.startsWith('data:')) {
+          dataBuffer += line.slice(5).trim()
+        }
+      }
+      if (eventName) {
+        let parsedPayload: any = {}
+        if (dataBuffer) {
+          try {
+            parsedPayload = JSON.parse(dataBuffer)
+          } catch (error) {
+            const parsingError = new Error('Não foi possível interpretar dados de streaming')
+            handlers.onError?.(parsingError)
+            rejectOnce(parsingError)
+            return ''
+          }
+        }
+        dispatchEvent(eventName, parsedPayload)
+      }
+    }
+
+    return buffer
+  }
+
+  fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Accept: 'text/event-stream',
+    },
+    body: JSON.stringify({ content }),
+    signal: controller.signal,
+  })
+    .then(async (response) => {
+      if (!response.ok) {
+        const error = new Error(`Falha ao iniciar streaming (${response.status})`)
+        handlers.onError?.(error)
+        rejectOnce(error)
+        return
+      }
+
+      if (!response.body) {
+        const error = new Error('Resposta de streaming sem corpo legível')
+        handlers.onError?.(error)
+        rejectOnce(error)
+        return
+      }
+
+      const reader = response.body.getReader()
+      const decoder = new TextDecoder('utf-8')
+      let buffer = ''
+
+      while (true) {
+        const { value, done } = await reader.read()
+        if (done) break
+        buffer += decoder.decode(value, { stream: true })
+        buffer = processBuffer(buffer)
+      }
+
+      processBuffer(buffer, true)
+      resolveOnce()
+    })
+    .catch((error) => {
+      if (controller.signal.aborted) {
+        const abortError = new Error('Streaming cancelado pelo cliente')
+        rejectOnce(abortError)
+      } else {
+        const finalError = error instanceof Error ? error : new Error(String(error))
+        handlers.onError?.(finalError)
+        rejectOnce(finalError)
+      }
+    })
+    .finally(() => {
+      handlers.onClose?.()
+    })
+
+  const close = () => {
+    if (!controller.signal.aborted) {
+      controller.abort()
+    }
+  }
+
+  return {
+    close,
+    completed,
+  }
+}
+
 // Função para verificar o status do backend (health check)
 export const checkBackendStatus = async (): Promise<{ status: 'online' | 'waking' | 'offline', message?: string }> => {
   try {
@@ -197,16 +418,19 @@ export const api = {
     const response = await apiClient.post('/conversations')
     return response.data
   },
-  
-  getConversationMessages: async (conversation_id: string): Promise<Message[]> => {
-    const response = await apiClient.get(`/conversations/${conversation_id}/messages`)
-    return response.data
-  },
-  
-  postMessage: async (conversation_id: string, content: string): Promise<Message> => {
-    const response = await apiClient.post(`/conversations/${conversation_id}/messages`, { content })
-    return response.data
-  },
+    getConversationMessages: async (conversation_id: string): Promise<Message[]> => {
+      const response = await apiClient.get(`/conversations/${conversation_id}/messages`)
+      return response.data
+    },
+
+    postMessage: async (conversation_id: string, content: string): Promise<Message> => {
+      const response = await apiClient.post(`/conversations/${conversation_id}/messages`, { content })
+      return response.data
+    },
+
+    streamMessage: (conversation_id: string, content: string, handlers: StreamHandlers): StreamController => {
+      return streamConversationMessage(conversation_id, content, handlers)
+    },
   
   // Feedbacks
   submitFeedback: async (message_id: string, feedback_text: string, feedback_type?: 'POSITIVE' | 'NEGATIVE' | null): Promise<PendingFeedback> => {
