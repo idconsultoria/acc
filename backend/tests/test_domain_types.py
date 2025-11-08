@@ -3,11 +3,25 @@ import pytest
 from datetime import datetime
 import uuid
 from app.domain.shared_kernel import (
-    ArtifactId, ConversationId, MessageId, ChunkId,
-    FeedbackId, LearningId, TopicId, Embedding
+    ArtifactId,
+    ConversationId,
+    MessageId,
+    ChunkId,
+    FeedbackId,
+    LearningId,
+    TopicId,
+    Embedding,
+    ContextSlotId,
 )
 from app.domain.artifacts.types import Artifact, ArtifactChunk, ArtifactSourceType, ChunkMetadata
-from app.domain.conversations.types import Conversation, Message, Author, CitedSource
+from app.domain.conversations.types import (
+    Conversation,
+    Message,
+    Author,
+    CitedSource,
+    ContextSlot,
+    ContextItemType,
+)
 from app.domain.feedbacks.types import PendingFeedback, FeedbackStatus
 from app.domain.learnings.types import Learning
 from app.domain.agent.types import AgentInstruction
@@ -221,6 +235,45 @@ class TestMessage:
         assert message.cited_sources[0].artifact_id == sample_artifact_id
 
 
+class TestContextSlot:
+    """Testes para ContextSlot."""
+
+    def test_create_context_slot_for_chunk(self, sample_conversation_id, sample_chunk_id):
+        """Garante criação de ContextSlot para chunk."""
+        slot = ContextSlot(
+            id=ContextSlotId(uuid.uuid4()),
+            conversation_id=sample_conversation_id,
+            item_type=ContextItemType.CHUNK,
+            item_id=sample_chunk_id,
+            is_pinned=True,
+            manual_weight=0.8,
+            created_at=datetime.utcnow(),
+        )
+
+        assert slot.item_type == ContextItemType.CHUNK
+        assert slot.item_id == sample_chunk_id
+        assert slot.is_pinned is True
+        assert slot.manual_weight == 0.8
+
+    def test_create_context_slot_for_learning(self, sample_conversation_id):
+        """Garante criação de ContextSlot para learning."""
+        learning_id = LearningId(uuid.uuid4())
+        slot = ContextSlot(
+            id=ContextSlotId(uuid.uuid4()),
+            conversation_id=sample_conversation_id,
+            item_type=ContextItemType.LEARNING,
+            item_id=learning_id,
+            is_pinned=False,
+            manual_weight=None,
+            created_at=datetime.utcnow(),
+        )
+
+        assert slot.item_type == ContextItemType.LEARNING
+        assert slot.item_id == learning_id
+        assert slot.is_pinned is False
+        assert slot.manual_weight is None
+
+
 class TestConversation:
     """Testes para Conversation."""
     
@@ -234,6 +287,8 @@ class TestConversation:
         
         assert conversation.id == sample_conversation_id
         assert len(conversation.messages) == 0
+        assert conversation.context_token_budget is None
+        assert conversation.context_slots == []
     
     def test_conversation_with_messages(self, sample_conversation_id, sample_message_id):
         """Testa Conversation com mensagens."""
@@ -254,6 +309,7 @@ class TestConversation:
         
         assert len(conversation.messages) == 1
         assert conversation.messages[0].content == "Mensagem"
+        assert conversation.context_slots == []
 
 
 class TestFeedbackStatus:
