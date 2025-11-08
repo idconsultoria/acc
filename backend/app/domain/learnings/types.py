@@ -13,4 +13,14 @@ class Learning:
     embedding: Embedding
     source_feedback_id: FeedbackId
     created_at: datetime
+    relevance_weight: float | None = None
+    last_used_at: datetime | None = None
+
+
+@dataclass(frozen=True)
+class LearningMergeCandidate:
+    """Sugestão de agrupamento de aprendizados semelhantes para merge."""
+    base_learning: Learning
+    duplicate_learnings: list[Learning]
+    similarity_score: float | None = None
 

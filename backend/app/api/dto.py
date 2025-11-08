@@ -99,6 +99,56 @@ class LearningDTO(BaseModel):
     content: str
     source_feedback_id: UUID
     created_at: datetime
+    relevance_weight: float | None = None
+    last_used_at: datetime | None = None
+
+
+class LearningWeightUpdateDTO(BaseModel):
+    """Item para atualização manual de peso de aprendizado."""
+    learning_id: UUID
+    relevance_weight: float
+
+
+class UpdateLearningWeightsPayload(BaseModel):
+    """Payload para atualizar pesos de aprendizados."""
+    updates: list[LearningWeightUpdateDTO]
+
+
+class MergeLearningsPayload(BaseModel):
+    """Payload para merge de aprendizados duplicados."""
+    learning_ids: list[UUID]
+    merged_content: str
+    merged_weight: float | None = None
+
+
+class MergeLearningsResponse(BaseModel):
+    """Resposta após merge de aprendizados."""
+    merged_learning: LearningDTO
+    archived_learning_ids: list[UUID]
+
+
+class LearningMergeCandidateDTO(BaseModel):
+    """Representa um candidato a merge de aprendizados duplicados."""
+    base_learning: LearningDTO
+    duplicate_learnings: list[LearningDTO]
+    similarity_score: float | None = None
+
+
+class DeduplicateLearningsPayload(BaseModel):
+    """Parâmetros para busca de candidatos à deduplicação."""
+    similarity_threshold: float | None = 0.85
+    limit: int | None = 20
+
+
+class DeduplicateLearningsResponse(BaseModel):
+    """Resposta com candidatos sugeridos para deduplicação."""
+    candidates: list[LearningMergeCandidateDTO]
+
+
+class RecalculateLearningWeightsResponse(BaseModel):
+    """Resumo do recálculo de pesos."""
+    updated_learning_ids: list[UUID]
+    recalculated_at: datetime
 
 
 class AgentInstructionDTO(BaseModel):

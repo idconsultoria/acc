@@ -140,6 +140,8 @@ def mock_knowledge_repo():
     mock_knowledge = Mock()
     mock_knowledge.relevant_artifacts = []
     mock_knowledge.relevant_learnings = []
+    mock_knowledge.artifact_scores = {}
+    mock_knowledge.learning_scores = {}
     mock.find_relevant_knowledge = AsyncMock(return_value=mock_knowledge)
     return mock
 
