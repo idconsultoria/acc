@@ -1,7 +1,15 @@
 import { useState, useEffect, useRef } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useSearchParams } from 'react-router-dom'
-import { api, ConversationTopic } from '@/api/client'
+import {
+  api,
+  ConversationTopic,
+  Message as ConversationMessage,
+  CitedSource,
+  RagPhaseDefinition,
+  RagPhaseUpdatePayload,
+  StreamController,
+} from '@/api/client'
 import { useStore } from '@/state/store'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
@@ -13,6 +21,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Skeleton } from '@/components/ui/skeleton'
 import Sidebar from '@/components/shared/Sidebar'
 import SourceCitation from '@/components/shared/SourceCitation'
+import RagPipelineTimeline, { RagPhaseState } from '@/components/shared/RagPipelineTimeline'
 import { cn } from '@/lib/utils'
 
 function ChatView() {
@@ -31,6 +40,12 @@ function ChatView() {
   const queryClient = useQueryClient()
   const isInitialLoadRef = useRef(true)
   const previousConversationIdRef = useRef<string | null>(null)
+  const [streamingContent, setStreamingContent] = useState('')
+  const [streamingCitedSources, setStreamingCitedSources] = useState<CitedSource[]>([])
+  const [streamingPhases, setStreamingPhases] = useState<RagPhaseState[]>([])
+  const [isStreaming, setIsStreaming] = useState(false)
+  const [streamError, setStreamError] = useState<string | null>(null)
+  const streamControllerRef = useRef<StreamController | null>(null)
 
   // Verifica se há um parâmetro de conversa na URL
   useEffect(() => {
@@ -68,38 +83,161 @@ function ChatView() {
       })
     }
   }, [conversationId, setConversationId])
+  
+  useEffect(() => {
+    return () => {
+      if (streamControllerRef.current) {
+        streamControllerRef.current.close()
+        streamControllerRef.current = null
+      }
+    }
+  }, [conversationId])
+  
+  useEffect(() => {
+    setStreamingPhases([])
+    setStreamingContent('')
+    setStreamingCitedSources([])
+    setStreamError(null)
+    setIsStreaming(false)
+  }, [conversationId])
 
   // Envia mensagem
   const sendMessageMutation = useMutation({
     mutationFn: async (content: string) => {
       if (!conversationId) throw new Error('Conversa não encontrada')
-      // Adiciona a mensagem do usuário imediatamente (optimistic update)
-      setPendingUserMessage(content)
-      return api.postMessage(conversationId, content)
-    },
-    onSuccess: () => {
-      // Remove a mensagem pendente e atualiza a lista de mensagens
-      setPendingUserMessage(null)
-      queryClient.invalidateQueries({ queryKey: ['conversation', conversationId] })
-      // Invalida também a query do tópico para buscar novamente
-      queryClient.invalidateQueries({ queryKey: ['conversation-topic', conversationId] })
-      setInput('')
-    },
-    onError: () => {
-      // Remove a mensagem pendente em caso de erro
-      setPendingUserMessage(null)
-    },
-  })
 
-  // Busca mensagens
-  const { data: messages = [], isLoading: isLoadingMessages } = useQuery({
-    queryKey: ['conversation', conversationId],
-    queryFn: () => conversationId ? api.getConversationMessages(conversationId) : Promise.resolve([]),
-    enabled: !!conversationId,
-    staleTime: 1000 * 10, // 10 segundos - mensagens podem mudar frequentemente
-    refetchInterval: sendMessageMutation.isPending ? 3000 : false, // Reduzido para 3 segundos ao invés de 1
-    refetchOnMount: false, // Não refaz automaticamente se dados estão frescos
+      setPendingUserMessage(content)
+      setStreamError(null)
+      setStreamingContent('')
+      setStreamingCitedSources([])
+      setStreamingPhases([])
+      setIsStreaming(true)
+
+      let completedMessage: ConversationMessage | null = null
+
+      const controller = api.streamMessage(conversationId, content, {
+        onPhaseStart: ({ phases }: { phases: RagPhaseDefinition[] }) => {
+          const initialPhases: RagPhaseState[] = phases.map((phase) => ({
+            id: phase.id,
+            label: phase.label,
+            status: 'pending',
+            metadata: {},
+          }))
+          setStreamingPhases(initialPhases)
+        },
+        onPhaseUpdate: ({ phase, ...rest }: RagPhaseUpdatePayload) => {
+          setStreamingPhases((prev) => {
+            const existing = prev.find((item) => item.id === phase)
+            if (!existing) {
+              return [
+                ...prev,
+                {
+                  id: phase,
+                  label: phase,
+                  status: 'running' as RagPhaseState['status'],
+                  metadata: Object.keys(rest).length ? rest : {},
+                },
+              ]
+            }
+
+            return prev.map((item) =>
+              item.id === phase
+                ? {
+                    ...item,
+                    status: 'running',
+                    metadata: Object.keys(rest).length
+                      ? { ...(item.metadata ?? {}), ...rest }
+                      : item.metadata,
+                  }
+                : item
+            )
+          })
+        },
+        onPhaseComplete: ({ phase, ...rest }: RagPhaseUpdatePayload) => {
+          setStreamingPhases((prev) => {
+            const existing = prev.find((item) => item.id === phase)
+            if (!existing) {
+              return [
+                ...prev,
+                {
+                  id: phase,
+                  label: phase,
+                  status: 'complete' as RagPhaseState['status'],
+                  metadata: Object.keys(rest).length ? rest : {},
+                },
+              ]
+            }
+
+            return prev.map((item) =>
+              item.id === phase
+                ? {
+                    ...item,
+                    status: 'complete',
+                    metadata: Object.keys(rest).length
+                      ? { ...(item.metadata ?? {}), ...rest }
+                      : item.metadata,
+                  }
+                : item
+            )
+          })
+        },
+        onToken: ({ value }) => {
+          setStreamingContent((prev) => prev + value)
+        },
+        onMessageComplete: (message) => {
+          completedMessage = message
+          setStreamingContent(message.content)
+          setStreamingCitedSources(message.cited_sources)
+        },
+        onError: (error) => {
+          setStreamError(error.message)
+        },
+        onClose: () => {
+          streamControllerRef.current = null
+        },
+      })
+
+      streamControllerRef.current = controller
+
+      try {
+        await controller.completed
+      } finally {
+        setIsStreaming(false)
+      }
+
+      return completedMessage
+    },
+    onSuccess: async (_message, _variables, _context) => {
+      setPendingUserMessage(null)
+      setInput('')
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['conversation', conversationId] }),
+        queryClient.invalidateQueries({ queryKey: ['conversation-topic', conversationId] }),
+      ])
+      setStreamingContent('')
+      setStreamingCitedSources([])
+      setStreamingPhases([])
+      setStreamError(null)
+    },
+    onError: (error: Error) => {
+      if (error.message !== 'Streaming cancelado pelo cliente') {
+        console.error('Erro ao transmitir mensagem:', error)
+        setStreamError(error.message)
+      }
+      setPendingUserMessage(null)
+      setIsStreaming(false)
+    },
   })
+    // Busca mensagens
+    const { data: messages = [], isLoading: isLoadingMessages } = useQuery({
+      queryKey: ['conversation', conversationId],
+      queryFn: () =>
+        conversationId ? api.getConversationMessages(conversationId) : Promise.resolve([]),
+      enabled: !!conversationId,
+      staleTime: 1000 * 10, // 10 segundos - mensagens podem mudar frequentemente
+      refetchInterval: isStreaming ? 3000 : false, // Reduzido para 3 segundos ao invés de 1
+      refetchOnMount: false, // Não refaz automaticamente se dados estão frescos
+    })
 
   // Atualiza o ref quando as mensagens são carregadas ou na primeira montagem
   useEffect(() => {
@@ -222,6 +360,17 @@ function ChatView() {
     }
   }
 
+  if (isStreaming && streamingContent) {
+    displayMessages.push({
+      id: 'streaming',
+      conversation_id: conversationId || '',
+      author: 'AGENT' as const,
+      content: streamingContent,
+      cited_sources: streamingCitedSources,
+      created_at: new Date().toISOString(),
+    })
+  }
+
   // Função para verificar se o usuário está no final do scroll
   const isAtBottom = (): boolean => {
     if (!scrollContainerRef.current) return true
@@ -250,10 +399,10 @@ function ChatView() {
     // Só rola se:
     // - É uma nova mensagem do agente E o usuário está no final
     // - Ou está enviando uma mensagem (para rolar quando a resposta do agente chegar)
-    if (isNewAgentMessage && (isAtBottom() || sendMessageMutation.isPending)) {
+      if (isNewAgentMessage && (isAtBottom() || isStreaming)) {
       messagesEndRef.current.scrollIntoView({ behavior: 'smooth' })
     }
-  }, [displayMessages, sendMessageMutation.isPending])
+    }, [displayMessages, isStreaming])
 
   // Marca que é carregamento inicial quando a conversa muda
   useEffect(() => {
@@ -264,7 +413,7 @@ function ChatView() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    if (!input.trim() || !conversationId || sendMessageMutation.isPending) return
+    if (!input.trim() || !conversationId || isStreaming) return
     sendMessageMutation.mutate(input)
   }
 
@@ -534,7 +683,7 @@ function ChatView() {
   }
 
   const hasWelcomeMessage = displayMessages.length === 0 && !pendingUserMessage && !isLoadingMessages
-  const showTypingIndicator = sendMessageMutation.isPending
+  const showTypingIndicator = isStreaming && streamingContent.length === 0
   // Detecta se está mudando de conversa (carregando mensagens de uma conversa diferente)
   // Só mostra skeletons se há uma conversa válida, está carregando, e mudou de conversa
   const isChangingConversation = isLoadingMessages && 
@@ -599,7 +748,7 @@ function ChatView() {
     <div className="flex h-screen w-full">
       <Sidebar />
 
-      {/* Main Chat Area */}
+        {/* Main Chat Area */}
       <main className="flex flex-1 flex-col h-screen md:ml-0">
         {/* Topic Badge */}
         {hasAgentResponse && (conversationTopic?.is_processing || conversationTopic?.topic) && (
@@ -621,6 +770,24 @@ function ChatView() {
             </div>
           </div>
         )}
+
+          {streamError && (
+            <div className="px-3 md:px-6 pt-3">
+              <div className="mx-auto max-w-4xl">
+                <div className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+                  {streamError}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {streamingPhases.length > 0 && (
+            <div className="px-3 md:px-6 pt-3">
+              <div className="mx-auto max-w-4xl">
+                <RagPipelineTimeline phases={streamingPhases} isStreaming={isStreaming} />
+              </div>
+            </div>
+          )}
 
         <div ref={scrollContainerRef} className={cn("flex-1 overflow-y-auto p-3 md:p-6", hasAgentResponse && (conversationTopic?.is_processing || conversationTopic?.topic) ? "" : "pt-16 md:pt-6")}>
           <div className="mx-auto max-w-4xl space-y-6 md:space-y-8">
@@ -833,11 +1000,11 @@ function ChatView() {
                     handleSubmit(e)
                   }
                 }}
-                disabled={sendMessageMutation.isPending}
+                  disabled={isStreaming}
               />
               <Button
                 type="submit"
-                disabled={!input.trim() || sendMessageMutation.isPending}
+                  disabled={!input.trim() || isStreaming}
                 className="absolute right-2 md:right-3 flex h-7 w-7 md:h-8 md:w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed p-0"
               >
                 <Send className="h-4 w-4 md:h-5 md:w-5" />
