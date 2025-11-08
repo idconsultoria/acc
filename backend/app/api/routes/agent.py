@@ -17,7 +17,8 @@ async def get_agent_instruction_route():
     
     return AgentInstructionDTO(
         instruction=instruction.content,
-        updated_at=instruction.updated_at
+        updated_at=instruction.updated_at,
+        prompt_version=instruction.prompt_version
     )
 
 
@@ -26,11 +27,13 @@ async def update_agent_instruction_route(payload: UpdateAgentInstructionPayload)
     """Atualiza a Instrução Geral do Agente."""
     instruction = await update_agent_instruction(
         new_content=payload.instruction,
+        new_prompt_version=payload.prompt_version,
         settings_repo=agent_settings_repo
     )
     
     return AgentInstructionDTO(
         instruction=instruction.content,
-        updated_at=instruction.updated_at
+        updated_at=instruction.updated_at,
+        prompt_version=instruction.prompt_version
     )
 

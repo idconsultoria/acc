@@ -71,7 +71,8 @@ class TestGeminiService:
     @pytest.mark.asyncio
     async def test_generate_advice(self, gemini_service):
         """Testa geração de conselho."""
-        with patch.object(gemini_service.model, 'generate_content') as mock_generate:
+        with patch('app.infrastructure.persistence.config.ENABLE_SELF_REFLECTION', False), \
+             patch.object(gemini_service.model, 'generate_content') as mock_generate:
             mock_response = Mock()
             mock_response.text = "Resposta do agente"
             mock_generate.return_value = mock_response
@@ -100,7 +101,8 @@ class TestGeminiService:
     @pytest.mark.asyncio
     async def test_generate_advice_with_artifacts(self, gemini_service):
         """Testa geração de conselho com artefatos."""
-        with patch.object(gemini_service.model, 'generate_content') as mock_generate:
+        with patch('app.infrastructure.persistence.config.ENABLE_SELF_REFLECTION', False), \
+             patch.object(gemini_service.model, 'generate_content') as mock_generate:
             mock_response = Mock()
             mock_response.text = "Resposta com citação"
             mock_generate.return_value = mock_response
