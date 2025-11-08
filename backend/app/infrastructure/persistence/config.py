@@ -11,6 +11,7 @@ SUPABASE_SERVICE_ROLE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
 
 # Google Gemini API
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+ENABLE_SELF_REFLECTION = os.getenv("ENABLE_SELF_REFLECTION", "true").lower() in ("1", "true", "yes", "on")
 
 # Database
 DATABASE_URL = os.getenv("DATABASE_URL")

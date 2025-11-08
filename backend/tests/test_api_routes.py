@@ -303,9 +303,10 @@ class TestAgentRoutes:
         """Testa obtenção de instrução do agente."""
         instruction = AgentInstruction(
             content="Instrução de teste",
-            updated_at=datetime.utcnow()
+            updated_at=datetime.utcnow(),
+            prompt_version="v1"
         )
-        
+
         mock_repo.get_instruction = AsyncMock(return_value=instruction)
         
         response = client.get("/api/v1/agent/instruction")
@@ -313,6 +314,7 @@ class TestAgentRoutes:
         data = response.json()
         assert "instruction" in data
         assert "updated_at" in data
+        assert data["prompt_version"] == "v1"
     
     @pytest.mark.asyncio
     @patch('app.api.routes.agent.agent_settings_repo')
@@ -320,18 +322,21 @@ class TestAgentRoutes:
         """Testa atualização de instrução do agente."""
         instruction = AgentInstruction(
             content="Nova instrução",
-            updated_at=datetime.utcnow()
+            updated_at=datetime.utcnow(),
+            prompt_version="v2"
         )
-        
+
         mock_repo.update_instruction = AsyncMock(return_value=instruction)
         
         response = client.put(
             "/api/v1/agent/instruction",
-            json={"instruction": "Nova instrução"}
+            json={"instruction": "Nova instrução", "prompt_version": "v2"}
         )
         assert response.status_code == 200
         data = response.json()
         assert data["instruction"] == "Nova instrução"
+        assert data["prompt_version"] == "v2"
+        mock_repo.update_instruction.assert_awaited_once_with("Nova instrução", "v2")
 
 
 class TestFeedbacksRoutes:

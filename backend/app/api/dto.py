@@ -105,11 +105,13 @@ class AgentInstructionDTO(BaseModel):
     """DTO para Instrução do Agente."""
     instruction: str
     updated_at: datetime
+    prompt_version: str | None = None
 
 
 class UpdateAgentInstructionPayload(BaseModel):
     """Payload para atualizar instrução do agente."""
     instruction: str
+    prompt_version: str | None = None
 
 
 class TopicDTO(BaseModel):

@@ -161,10 +161,12 @@ def mock_agent_settings_repo():
     mock = AsyncMock()
     mock.get_instruction = AsyncMock(return_value=AgentInstruction(
         content="Instrução de teste",
-        updated_at=datetime.utcnow()
+        updated_at=datetime.utcnow(),
+        prompt_version="v1"
     ))
     mock.update_instruction = AsyncMock(return_value=AgentInstruction(
         content="Nova instrução",
-        updated_at=datetime.utcnow()
+        updated_at=datetime.utcnow(),
+        prompt_version="v1"
     ))
     return mock

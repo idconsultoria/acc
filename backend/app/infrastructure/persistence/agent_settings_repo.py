@@ -1,13 +1,19 @@
 """Repositório de Configurações do Agente usando Supabase."""
-from supabase import create_client, Client
-from app.domain.agent.types import AgentInstruction
-from app.infrastructure.persistence.config import SUPABASE_URL, SUPABASE_KEY
 from datetime import datetime
+from typing import Optional
+
+from supabase import Client, create_client
+
+from app.domain.agent.prompt_templates import PromptTemplate
+from app.domain.agent.types import AgentInstruction
+from app.infrastructure.persistence.config import SUPABASE_KEY, SUPABASE_URL
+
+DEFAULT_PROMPT_VERSION = PromptTemplate().version
 
 
 class AgentSettingsRepository:
     """Repositório para persistência de configurações do agente no Supabase."""
-    
+
     def __init__(self):
         """Inicializa o repositório com cliente Supabase."""
         try:
@@ -17,67 +23,86 @@ class AgentSettingsRepository:
                 self.supabase = None
         except Exception:
             self.supabase = None
-    
+
     async def get_instruction(self) -> AgentInstruction:
         """Obtém a instrução atual do agente."""
+        default_instruction = (
+            "Você é um Conselheiro Cultural de uma organização. Sua missão é ajudar colaboradores a "
+            "refletirem sobre dilemas do dia a dia, sempre baseando suas respostas nos valores e práticas "
+            "documentadas da organização."
+        )
+
         if not self.supabase:
-            # Retorna instrução padrão se não houver Supabase
-            default_instruction = """Você é um Conselheiro Cultural de uma organização. Sua missão é ajudar colaboradores a refletirem sobre dilemas do dia a dia, sempre baseando suas respostas nos valores e práticas documentadas da organização."""
             return AgentInstruction(
                 content=default_instruction,
-                updated_at=datetime.utcnow()
+                updated_at=datetime.utcnow(),
+                prompt_version=DEFAULT_PROMPT_VERSION,
             )
-        
+
         try:
-            result = self.supabase.table("agent_settings").select("*").limit(1).execute()
-        except Exception as e:
-            # Se não conseguir buscar, retorna instrução padrão
+            result = (
+                self.supabase.table("agent_settings")
+                .select("*")
+                .order("updated_at", desc=True)
+                .limit(1)
+                .execute()
+            )
+        except Exception:
             result = None
-        
+
         if not result or not result.data:
-            # Retorna instrução padrão se não houver configuração
-            default_instruction = """Você é um Conselheiro Cultural de uma organização. Sua missão é ajudar colaboradores a refletirem sobre dilemas do dia a dia, sempre baseando suas respostas nos valores e práticas documentadas da organização."""
-            
-            # Cria a configuração padrão
-            default_data = {
+            payload = {
                 "instruction": default_instruction,
-                "updated_at": datetime.utcnow().isoformat()
+                "updated_at": datetime.utcnow().isoformat(),
+                "prompt_version": DEFAULT_PROMPT_VERSION,
             }
-            
-            self.supabase.table("agent_settings").insert(default_data).execute()
-            
+            try:
+                self.supabase.table("agent_settings").insert(payload).execute()
+            except Exception:
+                pass
+
             return AgentInstruction(
                 content=default_instruction,
-                updated_at=datetime.utcnow()
+                updated_at=datetime.utcnow(),
+                prompt_version=DEFAULT_PROMPT_VERSION,
             )
-        
+
         row = result.data[0]
-        
+        updated_at = row.get("updated_at")
+        prompt_version = row.get("prompt_version") or DEFAULT_PROMPT_VERSION
+
         return AgentInstruction(
             content=row["instruction"],
-            updated_at=datetime.fromisoformat(row["updated_at"].replace("Z", "+00:00"))
+            updated_at=datetime.fromisoformat(updated_at.replace("Z", "+00:00")) if updated_at else datetime.utcnow(),
+            prompt_version=prompt_version,
         )
-    
-    async def update_instruction(self, content: str) -> AgentInstruction:
+
+    async def update_instruction(self, content: str, prompt_version: Optional[str] = None) -> AgentInstruction:
         """Atualiza a instrução do agente."""
-        # Verifica se já existe uma configuração
-        result = self.supabase.table("agent_settings").select("*").limit(1).execute()
-        
-        if result.data:
-            # Atualiza a existente
-            self.supabase.table("agent_settings").update({
-                "instruction": content,
-                "updated_at": datetime.utcnow().isoformat()
-            }).eq("id", result.data[0]["id"]).execute()
-        else:
-            # Cria nova
-            self.supabase.table("agent_settings").insert({
-                "instruction": content,
-                "updated_at": datetime.utcnow().isoformat()
-            }).execute()
-        
+        selected_version = prompt_version or DEFAULT_PROMPT_VERSION
+        payload = {
+            "instruction": content,
+            "updated_at": datetime.utcnow().isoformat(),
+            "prompt_version": selected_version,
+        }
+
+        if self.supabase:
+            result = (
+                self.supabase.table("agent_settings")
+                .select("*")
+                .order("updated_at", desc=True)
+                .limit(1)
+                .execute()
+            )
+
+            if result.data:
+                self.supabase.table("agent_settings").update(payload).eq("id", result.data[0]["id"]).execute()
+            else:
+                self.supabase.table("agent_settings").insert(payload).execute()
+
         return AgentInstruction(
             content=content,
-            updated_at=datetime.utcnow()
+            updated_at=datetime.utcnow(),
+            prompt_version=selected_version,
         )
 

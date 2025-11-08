@@ -388,7 +388,8 @@ class TestAgentSettingsRepository:
         mock_result = Mock()
         mock_result.data = [{
             "instruction": "Instrução de teste",
-            "updated_at": datetime.utcnow().isoformat()
+            "updated_at": datetime.utcnow().isoformat(),
+            "prompt_version": "v1"
         }]
         mock_select.execute.return_value = mock_result
         
@@ -402,6 +403,7 @@ class TestAgentSettingsRepository:
         
         assert isinstance(result, AgentInstruction)
         assert result.content == "Instrução de teste"
+        assert result.prompt_version == "v1"
     
     @pytest.mark.asyncio
     @patch('app.infrastructure.persistence.agent_settings_repo.create_client')
@@ -411,8 +413,6 @@ class TestAgentSettingsRepository:
         
         mock_supabase = Mock()
         mock_table = Mock()
-        mock_upsert = Mock()
-        mock_table.upsert.return_value = mock_upsert
         
         # Mock do resultado da query - primeiro select verifica se existe
         mock_result_select = Mock()
@@ -425,6 +425,7 @@ class TestAgentSettingsRepository:
         # Mock do select após upsert
         mock_select = Mock()
         mock_table.select.return_value = mock_select
+        mock_select.order.return_value = mock_select
         mock_select.limit.return_value = mock_select
         mock_select.execute.return_value = mock_result_select
         
@@ -440,10 +441,17 @@ class TestAgentSettingsRepository:
         repo = AgentSettingsRepository()
         repo.supabase = mock_supabase
         
-        result = await repo.update_instruction("Nova instrução")
+        result = await repo.update_instruction("Nova instrução", "v2")
         
         assert isinstance(result, AgentInstruction)
         assert result.content == "Nova instrução"
+        assert result.prompt_version == "v2"
+        mock_table.update.assert_called_once()
+        args, kwargs = mock_table.update.call_args
+        assert kwargs == {}
+        update_payload = args[0]
+        assert update_payload["instruction"] == "Nova instrução"
+        assert update_payload["prompt_version"] == "v2"
 
 
 class TestLearningsRepository:

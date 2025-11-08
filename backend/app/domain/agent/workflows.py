@@ -1,5 +1,5 @@
 """Workflows do domínio do Agente."""
-from typing import Protocol
+from typing import Optional, Protocol
 from datetime import datetime
 from app.domain.agent.types import AgentInstruction
 
@@ -12,7 +12,7 @@ class AgentSettingsRepository(Protocol):
         """Obtém a instrução atual do agente."""
         ...
     
-    async def update_instruction(self, content: str) -> AgentInstruction:
+    async def update_instruction(self, content: str, prompt_version: Optional[str] = None) -> AgentInstruction:
         """Atualiza a instrução do agente."""
         ...
 
@@ -30,10 +30,11 @@ async def get_agent_instruction(
 
 async def update_agent_instruction(
     new_content: str,
+    new_prompt_version: Optional[str],
     settings_repo: AgentSettingsRepository
 ) -> AgentInstruction:
     """
     Atualiza a instrução geral do agente.
     """
-    return await settings_repo.update_instruction(new_content)
+    return await settings_repo.update_instruction(new_content, new_prompt_version)
 

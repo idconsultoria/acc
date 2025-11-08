@@ -400,11 +400,12 @@ class TestUpdateAgentInstruction:
         """Testa atualização de instrução do agente."""
         instruction = await update_agent_instruction(
             new_content="Nova instrução",
+            new_prompt_version="v1",
             settings_repo=mock_agent_settings_repo
         )
-        
+
         assert instruction.content == "Nova instrução"
-        mock_agent_settings_repo.update_instruction.assert_called_once_with("Nova instrução")
+        mock_agent_settings_repo.update_instruction.assert_called_once_with("Nova instrução", "v1")
 
 
 class TestSynthesizeLearningFromFeedback:

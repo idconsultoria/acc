@@ -1,8 +1,11 @@
 """Serviço de integração com Google Gemini 2.5 Flash."""
-import os
+import json
 import google.generativeai as genai
-from typing import Protocol
+from typing import Protocol, Sequence
+
 from app.domain.agent.types import AgentInstruction
+from app.domain.agent.prompt_examples import FEW_SHOT_EXAMPLES
+from app.domain.agent.prompt_templates import PromptTemplate
 from app.domain.conversations.types import Message
 from app.domain.artifacts.types import ArtifactChunk
 from app.domain.learnings.types import Learning
@@ -45,6 +48,7 @@ class GeminiService:
         """
         genai.configure(api_key=api_key)
         self.model = genai.GenerativeModel('gemini-2.5-flash')
+        self.prompt_template = PromptTemplate()
     
     async def generate_advice(
         self,
@@ -65,78 +69,28 @@ class GeminiService:
         Returns:
             Tupla com (conteúdo da resposta em markdown, lista de chunks citados)
         """
-        # Constrói o contexto dos artefatos
-        artifacts_context = ""
-        cited_chunks = []
-        
-        for idx, chunk in enumerate(knowledge.relevant_artifacts[:5], start=1):  # Limita a 5 chunks mais relevantes
-            metadata = chunk.metadata
-            section_title = metadata.section_title if metadata else None
-            breadcrumbs = " › ".join(metadata.breadcrumbs) if metadata and metadata.breadcrumbs else ""
-            content_type = metadata.content_type if metadata else None
-            header_title = section_title or f"Trecho {idx}"
-            header = f"### Fonte {idx} — {header_title}"
-            details = []
-            if breadcrumbs:
-                details.append(f"Breadcrumbs: {breadcrumbs}")
-            if content_type:
-                details.append(f"Tipo: {content_type}")
-            metadata_block = "\n".join(details)
-            chunk_text = f"{header}\n{metadata_block}\n\n{chunk.content}" if metadata_block else f"{header}\n\n{chunk.content}"
-            artifacts_context += f"\n\n{chunk_text.strip()}"
-            cited_chunks.append(chunk)
-        
-        # Constrói o contexto dos aprendizados
-        learnings_context = ""
-        for learning in knowledge.relevant_learnings[:3]:  # Limita a 3 aprendizados
-            learnings_context += f"\n\n--- Aprendizado ---\n{learning.content}\n"
-        
-        # Constrói o histórico da conversa
-        conversation_context = ""
-        for msg in conversation_history[-5:]:  # Últimas 5 mensagens
-            author = "Usuário" if msg.author.value == 1 else "Agente"
-            conversation_context += f"\n{author}: {msg.content}\n"
-        
-        # Monta o prompt completo
-        system_prompt = f"""Você é um Conselheiro Cultural de uma organização. Sua missão é ajudar colaboradores a refletirem sobre dilemas do dia a dia, sempre baseando suas respostas nos valores e práticas documentadas da organização.
+        cited_chunks = list(knowledge.relevant_artifacts[:5])
+        messages = self.prompt_template.build_messages(
+            instruction=instruction,
+            artifacts=cited_chunks,
+            learnings=knowledge.relevant_learnings,
+            conversation_history=conversation_history,
+            user_query=user_query,
+            few_shot_examples=FEW_SHOT_EXAMPLES,
+        )
 
-{instruction.content}
-
-REGRAS IMPORTANTES:
-1. Sempre cite as fontes quando usar informações dos artefatos culturais. Use o formato [Fonte X] onde X é o número da fonte.
-2. Seja reflexivo e não prescritivo. Ajude o usuário a pensar, não a obedecer.
-3. Use Markdown para formatar suas respostas (negrito, itálico, listas, etc.).
-4. Base suas respostas nos artefatos e aprendizados fornecidos abaixo.
-
-ARTEFATOS CULTURAIS RELEVANTES:
-{artifacts_context}
-
-APRENDIZADOS RELEVANTES:
-{learnings_context}
-
-HISTÓRICO DA CONVERSA:
-{conversation_context}
-
-PERGUNTA DO USUÁRIO:
-{user_query}
-
-RESPOSTA (use Markdown e cite as fontes):"""
-
-        # Gera a resposta
         try:
-            # Usa generate_content com o prompt como conteúdo da mensagem
-            response = self.model.generate_content(system_prompt)
-            # O Gemini retorna um objeto com .text
-            if hasattr(response, 'text'):
-                content = response.text
-            elif hasattr(response, 'parts') and response.parts:
-                content = response.parts[0].text
-            else:
-                content = str(response)
-            
-            # Extrai os chunks citados (por enquanto, retornamos todos os chunks relevantes)
-            # Em uma versão mais sofisticada, poderíamos analisar a resposta para identificar quais chunks foram realmente citados
-            
+            response = self.model.generate_content(messages=messages)
+            content = self._extract_response_text(response)
+
+            content = await self._maybe_apply_self_reflection(
+                base_messages=messages,
+                user_query=user_query,
+                draft_response=content,
+                cited_chunks=cited_chunks,
+                learnings=knowledge.relevant_learnings,
+            )
+
             return content, cited_chunks
         except Exception as e:
             raise ValueError(f"Erro ao gerar conselho: {str(e)}")
@@ -165,7 +119,64 @@ Aprendizado sintetizado:"""
 
         try:
             response = self.model.generate_content(prompt)
-            return response.text.strip()
+            return self._extract_response_text(response).strip()
         except Exception as e:
             raise ValueError(f"Erro ao sintetizar aprendizado: {str(e)}")
+
+    def _extract_response_text(self, response: object) -> str:
+        """Normaliza o conteúdo textual retornado pelo Gemini."""
+        if not response:
+            return ""
+        if hasattr(response, "text") and response.text:
+            return response.text
+        if hasattr(response, "parts") and getattr(response, "parts"):
+            first_part = response.parts[0]
+            if hasattr(first_part, "text"):
+                return first_part.text
+            if isinstance(first_part, dict) and "text" in first_part:
+                return first_part["text"]
+        return str(response)
+
+    async def _maybe_apply_self_reflection(
+        self,
+        base_messages: Sequence[dict],
+        user_query: str,
+        draft_response: str,
+        cited_chunks: Sequence[ArtifactChunk],
+        learnings: Sequence[Learning],
+    ) -> str:
+        """Executa autoavaliação opcional e ajusta a resposta se necessário."""
+        from app.infrastructure.persistence.config import ENABLE_SELF_REFLECTION
+
+        content = draft_response.strip()
+        if not ENABLE_SELF_REFLECTION or not content:
+            return content
+
+        reflection_prompt = self.prompt_template.build_self_reflection_prompt(
+            user_query=user_query,
+            draft_response=content,
+            cited_artifacts=cited_chunks,
+            learnings=learnings,
+        )
+
+        reflection_response = self.model.generate_content(reflection_prompt)
+        reflection_text = self._extract_response_text(reflection_response)
+
+        try:
+            reflection_report = json.loads(reflection_text)
+        except json.JSONDecodeError:
+            return content
+
+        if not reflection_report.get("revision_needed"):
+            return content
+
+        revision_messages = self.prompt_template.build_revision_messages(
+            base_messages=base_messages,
+            draft_response=content,
+            reflection_report=reflection_report,
+        )
+
+        revision_response = self.model.generate_content(messages=revision_messages)
+        revised_content = self._extract_response_text(revision_response)
+        return revised_content.strip() if revised_content else content
 
