@@ -99,15 +99,24 @@ class TestCitedSourceDTO:
     def test_create_cited_source_dto(self):
         """Testa criação de CitedSourceDTO."""
         artifact_id = UUID('12345678-1234-5678-1234-567812345678')
+        chunk_id = UUID('87654321-4321-8765-4321-876543218765')
         dto = CitedSourceDTO(
+            chunk_id=chunk_id,
             artifact_id=artifact_id,
             title="Fonte de Teste",
-            chunk_content_preview="Preview do conteúdo..."
+            chunk_content_preview="Preview do conteúdo...",
+            section_title="Introdução",
+            section_level=1,
+            content_type="paragraph",
+            breadcrumbs=["Introdução"]
         )
         
         assert dto.artifact_id == artifact_id
         assert dto.title == "Fonte de Teste"
         assert dto.chunk_content_preview == "Preview do conteúdo..."
+        assert dto.chunk_id == chunk_id
+        assert dto.section_title == "Introdução"
+        assert dto.breadcrumbs == ["Introdução"]
 
 
 class TestMessageDTO:
@@ -118,11 +127,17 @@ class TestMessageDTO:
         message_id = UUID('12345678-1234-5678-1234-567812345678')
         conversation_id = UUID('87654321-4321-8765-4321-876543218765')
         artifact_id = UUID('11111111-1111-1111-1111-111111111111')
+        chunk_id = UUID('22222222-2222-2222-2222-222222222222')
         
         cited_source = CitedSourceDTO(
+            chunk_id=chunk_id,
             artifact_id=artifact_id,
             title="Fonte",
-            chunk_content_preview="Preview"
+            chunk_content_preview="Preview",
+            section_title="Seção",
+            section_level=2,
+            content_type="bullet",
+            breadcrumbs=["Pai", "Seção"]
         )
         
         dto = MessageDTO(
@@ -140,6 +155,7 @@ class TestMessageDTO:
         assert dto.content == "Mensagem de teste"
         assert len(dto.cited_sources) == 1
         assert dto.cited_sources[0].artifact_id == artifact_id
+        assert dto.cited_sources[0].chunk_id == chunk_id
 
 
 class TestCreateMessagePayload:

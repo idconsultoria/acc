@@ -1,8 +1,8 @@
 """Tipos de dados do domínio de Conversas."""
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum, auto
-from app.domain.shared_kernel import ConversationId, MessageId, ArtifactId
+from app.domain.shared_kernel import ConversationId, MessageId, ArtifactId, ChunkId
 
 
 class Author(Enum):
@@ -15,9 +15,14 @@ class Author(Enum):
 @dataclass(frozen=True)
 class CitedSource:
     """Fonte citada em uma mensagem do agente."""
+    chunk_id: ChunkId
     artifact_id: ArtifactId
     title: str
     chunk_content_preview: str
+    section_title: str | None = None
+    section_level: int | None = None
+    content_type: str | None = None
+    breadcrumbs: list[str] = field(default_factory=list)
 
 
 # Entidade que compõe o agregado Conversa

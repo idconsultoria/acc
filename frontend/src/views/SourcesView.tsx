@@ -9,7 +9,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import Sidebar from '@/components/shared/Sidebar'
-import { api, Artifact } from '@/api/client'
+import { api, Artifact, ArtifactContentResponse } from '@/api/client'
 import { cn } from '@/lib/utils'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
@@ -38,10 +38,11 @@ function SourcesView() {
   const { 
     data: artifactContent,
     isLoading: isLoadingContent
-  } = useQuery({
+  } = useQuery<ArtifactContentResponse>({
     queryKey: ['artifact-content', selectedArtifact?.id],
-    queryFn: () => selectedArtifact ? api.getArtifactContent(selectedArtifact.id) : Promise.resolve({ content: '' }),
+    queryFn: () => selectedArtifact ? api.getArtifactContent(selectedArtifact.id) : Promise.resolve({ source_type: 'TEXT', content: '' }),
     enabled: !!selectedArtifact && selectedArtifact.source_type === 'TEXT',
+    staleTime: 0,
   })
 
   // Filtra artefatos
@@ -338,15 +339,26 @@ function SourcesView() {
           <ScrollArea className="flex-1 overflow-auto">
             <div className="px-4 md:px-6 py-3 md:py-4">
             {selectedArtifact?.source_type === 'PDF' ? (
-              <div className="flex flex-col items-center justify-center py-12 text-center">
-                <FileText className="h-16 w-16 text-muted-foreground mb-4" />
-                <h3 className="text-lg font-semibold text-foreground mb-2">
-                  Documento PDF
-                </h3>
-                <p className="text-sm text-muted-foreground max-w-md">
-                  Este é um documento PDF. A visualização completa de PDFs não está disponível no momento.
-                  O conteúdo deste documento é utilizado pelo agente durante as conversas.
-                </p>
+              <div className="flex flex-col items-center justify-center py-12 text-center space-y-4">
+                <FileText className="h-16 w-16 text-muted-foreground" />
+                <div className="space-y-2">
+                  <h3 className="text-lg font-semibold text-foreground">
+                    Documento PDF
+                  </h3>
+                  <p className="text-sm text-muted-foreground max-w-md">
+                    Visualize o arquivo original para conferir o conteúdo completo. O agente utiliza este documento
+                    como fonte durante as respostas.
+                  </p>
+                </div>
+                {selectedArtifact?.source_url ? (
+                  <Button asChild>
+                    <a href={selectedArtifact.source_url} target="_blank" rel="noreferrer">
+                      <FileText className="h-4 w-4 mr-2" /> Abrir PDF em nova aba
+                    </a>
+                  </Button>
+                ) : (
+                  <p className="text-sm text-destructive">Nenhum arquivo PDF disponível para este artefato.</p>
+                )}
               </div>
             ) : isLoadingContent ? (
               <div className="space-y-3 py-4">
@@ -476,7 +488,7 @@ function SourcesView() {
                     ),
                   }}
                 >
-                  {artifactContent?.content || ''}
+                  {artifactContent && artifactContent.source_type === 'TEXT' ? artifactContent.content : ''}
                 </ReactMarkdown>
               </div>
             )}

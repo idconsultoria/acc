@@ -2,7 +2,14 @@
 from fastapi import APIRouter, UploadFile, File, Form, HTTPException
 from fastapi.responses import JSONResponse
 from typing import Optional
-from app.api.dto import ArtifactDTO, ErrorDTO, UpdateArtifactTagsPayload, UpdateArtifactPayload
+from app.api.dto import (
+    ArtifactDTO,
+    ArtifactChunkDTO,
+    ChunkMetadataDTO,
+    ErrorDTO,
+    UpdateArtifactTagsPayload,
+    UpdateArtifactPayload,
+)
 from app.domain.artifacts.workflows import create_artifact_from_text, create_artifact_from_pdf
 from app.domain.artifacts.types import ArtifactSourceType
 from app.infrastructure.persistence.artifacts_repo import ArtifactsRepository
@@ -41,7 +48,8 @@ async def list_artifacts():
             created_at=datetime.utcnow(),  # TODO: Buscar data real do banco
             description=artifact_data.get('description') if artifact_data else None,
             tags=artifact_data.get('tags', []) if artifact_data else [],
-            color=artifact_data.get('color') if artifact_data else None
+            color=artifact_data.get('color') if artifact_data else None,
+            source_url=artifact.source_url
         ))
     
     return result
@@ -116,7 +124,8 @@ async def create_artifact(
         created_at=datetime.utcnow(),
         description=artifact_data.get('description') if artifact_data else None,
         tags=artifact_data.get('tags', []) if artifact_data else [],
-        color=artifact_data.get('color') if artifact_data else None
+        color=artifact_data.get('color') if artifact_data else None,
+        source_url=artifact.source_url
     )
 
 
@@ -145,7 +154,8 @@ async def get_artifact_by_id(artifact_id: str):
         created_at=datetime.utcnow(),
         description=artifact_data.get('description') if artifact_data else None,
         tags=artifact_data.get('tags', []) if artifact_data else [],
-        color=artifact_data.get('color') if artifact_data else None
+        color=artifact_data.get('color') if artifact_data else None,
+        source_url=artifact.source_url
     )
 
 
@@ -164,10 +174,53 @@ async def get_artifact_content(artifact_id: str):
     if not artifact:
         raise HTTPException(status_code=404, detail="Artefato não encontrado")
     
-    # Concatena o conteúdo de todos os chunks
-    content = "\n".join([chunk.content for chunk in artifact.chunks])
-    
-    return {"content": content}
+    if artifact.source_type.name == "TEXT":
+        if artifact.original_content:
+            return {"source_type": "TEXT", "content": artifact.original_content}
+        content = "\n".join([chunk.content for chunk in artifact.chunks])
+        return {"source_type": "TEXT", "content": content}
+
+    return {"source_type": "PDF", "source_url": artifact.source_url}
+
+
+@router.get("/artifacts/{artifact_id}/chunks", response_model=list[ArtifactChunkDTO])
+async def get_artifact_chunks(artifact_id: str):
+    """Retorna os chunks de um artefato com metadados estruturados."""
+    from app.domain.shared_kernel import ArtifactId
+
+    try:
+        artifact_id_uuid = ArtifactId(uuid.UUID(artifact_id))
+    except ValueError:
+        raise HTTPException(status_code=400, detail="ID inválido")
+
+    artifact = await artifacts_repo.find_by_id(artifact_id_uuid)
+
+    if not artifact:
+        raise HTTPException(status_code=404, detail="Artefato não encontrado")
+
+    chunk_dtos: list[ArtifactChunkDTO] = []
+    for chunk in sorted(artifact.chunks, key=lambda c: c.metadata.position if c.metadata else 0):
+        metadata = chunk.metadata
+        metadata_dto = None
+        if metadata:
+            metadata_dto = ChunkMetadataDTO(
+                section_title=metadata.section_title,
+                section_level=metadata.section_level,
+                content_type=metadata.content_type,
+                position=metadata.position,
+                token_count=metadata.token_count,
+                breadcrumbs=metadata.breadcrumbs,
+            )
+        chunk_dtos.append(
+            ArtifactChunkDTO(
+                id=chunk.id,
+                artifact_id=chunk.artifact_id,
+                content=chunk.content,
+                metadata=metadata_dto,
+            )
+        )
+
+    return chunk_dtos
 
 
 @router.delete("/artifacts/{artifact_id}", status_code=204)
@@ -225,7 +278,8 @@ async def update_artifact_tags(artifact_id: str, payload: UpdateArtifactTagsPayl
         created_at=datetime.utcnow(),
         description=artifact_data.get('description') if artifact_data else None,
         tags=artifact_data.get('tags', []) if artifact_data else [],
-        color=artifact_data.get('color') if artifact_data else None
+        color=artifact_data.get('color') if artifact_data else None,
+        source_url=artifact.source_url
     )
 
 
@@ -310,6 +364,7 @@ async def update_artifact(
         created_at=datetime.utcnow(),
         description=artifact_data.get('description') if artifact_data else None,
         tags=artifact_data.get('tags', []) if artifact_data else [],
-        color=artifact_data.get('color') if artifact_data else None
+        color=artifact_data.get('color') if artifact_data else None,
+        source_url=updated_artifact.source_url
     )
 

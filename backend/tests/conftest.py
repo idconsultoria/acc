@@ -6,7 +6,7 @@ from datetime import datetime
 import uuid
 
 # Configura variáveis de ambiente antes de qualquer importação
-os.environ.setdefault('SUPABASE_URL', 'http://test.supabase.co')
+os.environ.setdefault('SUPABASE_URL', 'https://test.supabase.co')
 os.environ.setdefault('SUPABASE_KEY', 'test-key-1234567890123456789012345678901234567890')
 os.environ.setdefault('SUPABASE_SERVICE_ROLE_KEY', 'test-service-key-1234567890123456789012345678901234567890')
 os.environ.setdefault('GEMINI_API_KEY', 'test-gemini-key')
@@ -14,7 +14,7 @@ from app.domain.shared_kernel import (
     ArtifactId, ConversationId, MessageId, ChunkId, 
     FeedbackId, LearningId, TopicId, Embedding
 )
-from app.domain.artifacts.types import Artifact, ArtifactChunk, ArtifactSourceType
+from app.domain.artifacts.types import Artifact, ArtifactChunk, ArtifactSourceType, ChunkMetadata
 from app.domain.conversations.types import Conversation, Message, Author, CitedSource
 from app.domain.feedbacks.types import PendingFeedback, FeedbackStatus
 from app.domain.learnings.types import Learning
@@ -59,7 +59,15 @@ def sample_artifact_chunk(sample_chunk_id, sample_artifact_id, sample_embedding)
         id=sample_chunk_id,
         artifact_id=sample_artifact_id,
         content="Este é um chunk de exemplo com conteúdo de teste.",
-        embedding=sample_embedding
+        embedding=sample_embedding,
+        metadata=ChunkMetadata(
+            section_title="Introdução",
+            section_level=1,
+            content_type="paragraph",
+            position=0,
+            token_count=42,
+            breadcrumbs=["Introdução"],
+        ),
     )
 
 
@@ -71,7 +79,8 @@ def sample_artifact(sample_artifact_id, sample_artifact_chunk):
         title="Artefato de Teste",
         source_type=ArtifactSourceType.TEXT,
         chunks=[sample_artifact_chunk],
-        source_url=None
+        source_url=None,
+        original_content="Este é um texto de teste para o artefato."
     )
 
 
@@ -111,6 +120,7 @@ def mock_pdf_processor():
     """Retorna um mock de PDFProcessor."""
     mock = Mock()
     mock.extract_text = Mock(return_value="Texto extraído do PDF")
+    mock.extract_with_metadata = Mock(return_value=[])
     return mock
 
 

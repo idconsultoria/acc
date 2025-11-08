@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { api, Artifact } from '@/api/client'
-import { Loader2, Plus, Trash2, Tag, XCircle, FileText, File, Check, Pencil } from 'lucide-react'
+import { api, Artifact, ArtifactChunk, ArtifactContentResponse } from '@/api/client'
+import { Loader2, Plus, Trash2, FileText, File, Check } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent } from '@/components/ui/card'
@@ -10,6 +10,9 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
 import { Skeleton } from '@/components/ui/skeleton'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { ScrollArea } from '@/components/ui/scroll-area'
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import AdminSidebar from '@/components/shared/AdminSidebar'
 
 // Paleta de cores inspirada no shadcn-ui com bordas e fundos sutis
@@ -95,20 +98,33 @@ const getRandomColor = () => {
 
 function AdminArtifactsView() {
   const queryClient = useQueryClient()
+
+  // Estado para criação de artefatos
   const [showAddModal, setShowAddModal] = useState(false)
-  const [showEditModal, setShowEditModal] = useState(false)
-  const [editingArtifact, setEditingArtifact] = useState<Artifact | null>(null)
   const [addTitle, setAddTitle] = useState('')
   const [addText, setAddText] = useState('')
   const [addFile, setAddFile] = useState<File | null>(null)
   const [addType, setAddType] = useState<'text' | 'pdf'>('text')
   const [addColor, setAddColor] = useState<string | null>(getRandomColor())
+
+  // Estado para edição/visualização
+  const [activeArtifact, setActiveArtifact] = useState<Artifact | null>(null)
+  const [artifactModalTab, setArtifactModalTab] = useState<'edit' | 'chunks'>('edit')
+  const [artifactContent, setArtifactContent] = useState<ArtifactContentResponse | null>(null)
+  const [isLoadingArtifactContent, setIsLoadingArtifactContent] = useState(false)
+  const [artifactChunks, setArtifactChunks] = useState<ArtifactChunk[]>([])
+  const [isLoadingChunks, setIsLoadingChunks] = useState(false)
+  const [chunksError, setChunksError] = useState<string | null>(null)
+  const [editTitle, setEditTitle] = useState('')
+  const [editDescription, setEditDescription] = useState('')
   const [editContent, setEditContent] = useState('')
-  const [loadingContent, setLoadingContent] = useState(false)
-  const [replaceFile, setReplaceFile] = useState(false)
-  const [showTagsModal, setShowTagsModal] = useState<string | null>(null)
+  const [originalTextContent, setOriginalTextContent] = useState('')
+  const [editColor, setEditColor] = useState<string | null>(null)
   const [artifactTags, setArtifactTags] = useState<string[]>([])
   const [newTag, setNewTag] = useState('')
+  const [editFile, setEditFile] = useState<File | null>(null)
+  const [feedbackAlert, setFeedbackAlert] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
+  const [isDeleting, setIsDeleting] = useState<string | null>(null)
 
   // Busca artefatos
   const { data: artifacts = [], isLoading: isLoadingArtifacts } = useQuery({
@@ -134,136 +150,194 @@ function AdminArtifactsView() {
       
       return api.createArtifact(formData)
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['artifacts'] })
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['artifacts'] })
       setShowAddModal(false)
       setAddTitle('')
       setAddText('')
       setAddFile(null)
+      setAddType('text')
       setAddColor(getRandomColor())
+      setFeedbackAlert({ type: 'success', message: 'Artefato adicionado com sucesso.' })
     },
+    onError: (error: unknown) => {
+      let message = 'Não foi possível adicionar o artefato. Tente novamente.'
+      if (typeof error === 'object' && error !== null) {
+        const maybeAxios = error as { response?: { data?: { detail?: string } }; message?: string }
+        if (maybeAxios.response?.data?.detail) {
+          message = maybeAxios.response.data.detail
+        } else if (maybeAxios.message) {
+          message = maybeAxios.message
+        }
+      } else if (typeof error === 'string') {
+        message = error
+      }
+      setFeedbackAlert({ type: 'error', message })
+    }
   })
+
+  const loadArtifactContent = async (artifact: Artifact) => {
+    setIsLoadingArtifactContent(true)
+    try {
+      const contentResponse = await api.getArtifactContent(artifact.id)
+      setArtifactContent(contentResponse)
+      if (contentResponse.source_type === 'TEXT') {
+        setEditContent(contentResponse.content)
+        setOriginalTextContent(contentResponse.content)
+      } else {
+        setEditContent('')
+        setOriginalTextContent('')
+      }
+    } catch (error) {
+      console.error('Erro ao carregar conteúdo do artefato:', error)
+      setArtifactContent(null)
+      setEditContent('')
+      setOriginalTextContent('')
+    } finally {
+      setIsLoadingArtifactContent(false)
+    }
+  }
+
+  const loadArtifactChunks = async (artifact: Artifact) => {
+    setIsLoadingChunks(true)
+    setChunksError(null)
+    try {
+      const chunks = await api.getArtifactChunks(artifact.id)
+      setArtifactChunks(chunks)
+    } catch (error) {
+      console.error('Erro ao carregar chunks do artefato:', error)
+      setArtifactChunks([])
+      setChunksError('Não foi possível carregar os chunks deste artefato.')
+    } finally {
+      setIsLoadingChunks(false)
+    }
+  }
 
   // Edita artefato
   const updateArtifactMutation = useMutation({
     mutationFn: async () => {
-      if (!editingArtifact) return
-      
+      if (!activeArtifact) return
+
       const formData = new FormData()
-      formData.append('title', addTitle)
-      
-      if (addText) {
-        formData.append('description', addText)
-      }
-      
-      if (artifactTags.length > 0) {
-        formData.append('tags', JSON.stringify(artifactTags))
-      }
-      
-      if (addColor) {
-        formData.append('color', addColor)
-      }
-      
-      // Se for TEXT e o conteúdo foi alterado
-      if (editingArtifact.source_type === 'TEXT' && editContent) {
+      formData.append('title', editTitle)
+      formData.append('description', editDescription || '')
+      formData.append('tags', JSON.stringify(artifactTags))
+      formData.append('color', editColor ?? '')
+
+      const shouldRechunk =
+        activeArtifact.source_type === 'TEXT' && editContent !== originalTextContent
+
+      if (shouldRechunk) {
         formData.append('content', editContent)
       }
-      
-      // Se for PDF e um novo arquivo foi selecionado
-      if (editingArtifact.source_type === 'PDF' && addFile) {
-        formData.append('file', addFile)
+
+      if (activeArtifact.source_type === 'PDF' && editFile) {
+        formData.append('file', editFile)
       }
-      
-      return api.updateArtifact(editingArtifact.id, formData)
+
+      return api.updateArtifact(activeArtifact.id, formData)
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['artifacts'] })
-      setShowEditModal(false)
-      setEditingArtifact(null)
-      setAddTitle('')
-      setAddText('')
-      setArtifactTags([])
-      setAddColor(null)
-      setEditContent('')
-      setAddFile(null)
-      setReplaceFile(false)
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['artifacts'] })
+      if (activeArtifact) {
+        const updatedArtifact: Artifact = {
+          ...activeArtifact,
+          title: editTitle,
+          description: editDescription || undefined,
+          tags: artifactTags,
+          color: editColor || undefined,
+        }
+        setActiveArtifact(updatedArtifact)
+        await Promise.all([loadArtifactContent(updatedArtifact), loadArtifactChunks(updatedArtifact)])
+      }
+      setFeedbackAlert({ type: 'success', message: 'Artefato atualizado com sucesso.' })
+      setEditFile(null)
     },
+    onError: (error: unknown) => {
+      let message = 'Não foi possível atualizar o artefato. Tente novamente.'
+      if (typeof error === 'object' && error !== null) {
+        const maybeAxios = error as { response?: { data?: { detail?: string } }; message?: string }
+        if (maybeAxios.response?.data?.detail) {
+          message = maybeAxios.response.data.detail
+        } else if (maybeAxios.message) {
+          message = maybeAxios.message
+        }
+      } else if (typeof error === 'string') {
+        message = error
+      }
+      setFeedbackAlert({ type: 'error', message })
+    }
   })
 
   // Deleta artefato
   const deleteArtifactMutation = useMutation({
-    mutationFn: api.deleteArtifact,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['artifacts'] })
+    mutationFn: (artifactId: string) => api.deleteArtifact(artifactId),
+    onMutate: (artifactId: string) => {
+      setIsDeleting(artifactId)
     },
-  })
-
-  // Atualiza tags do artefato
-  const updateTagsMutation = useMutation({
-    mutationFn: ({ artifactId, tags }: { artifactId: string; tags: string[] }) =>
-      api.updateArtifactTags(artifactId, tags),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['artifacts'] })
-      setShowTagsModal(null)
-      setArtifactTags([])
-      setNewTag('')
-    },
-  })
-
-  // Abre modal de tags
-  const handleOpenTagsModal = (artifact: typeof artifacts[0]) => {
-    setArtifactTags(artifact.tags || [])
-    setShowTagsModal(artifact.id)
-    setNewTag('')
-  }
-
-  // Abre modal de edição
-  const handleOpenEditModal = async (artifact: typeof artifacts[0]) => {
-    setEditingArtifact(artifact)
-    setAddTitle(artifact.title)
-    setAddText(artifact.description || '')
-    setArtifactTags(artifact.tags || [])
-    setAddColor(artifact.color || null)
-    setReplaceFile(false)
-    setAddFile(null)
-    
-    // Carrega o conteúdo se for TEXT
-    if (artifact.source_type === 'TEXT') {
-      setLoadingContent(true)
-      try {
-        const { content } = await api.getArtifactContent(artifact.id)
-        setEditContent(content)
-      } catch (error) {
-        console.error('Erro ao carregar conteúdo:', error)
-        setEditContent('')
-      } finally {
-        setLoadingContent(false)
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['artifacts'] })
+      setFeedbackAlert({ type: 'success', message: 'Artefato excluído com sucesso.' })
+      if (activeArtifact) {
+        handleCloseArtifactModal()
       }
-    } else {
-      setEditContent('')
+    },
+    onError: (error: unknown) => {
+      let message = 'Não foi possível excluir o artefato. Tente novamente.'
+      if (typeof error === 'object' && error !== null) {
+        const maybeAxios = error as { response?: { data?: { detail?: string } }; message?: string }
+        if (maybeAxios.response?.data?.detail) {
+          message = maybeAxios.response.data.detail
+        } else if (maybeAxios.message) {
+          message = maybeAxios.message
+        }
+      } else if (typeof error === 'string') {
+        message = error
+      }
+      setFeedbackAlert({ type: 'error', message })
+    },
+    onSettled: () => {
+      setIsDeleting(null)
     }
-    
-    setShowEditModal(true)
-  }
+  })
 
-  // Adiciona tag
-  const handleAddTag = () => {
+  function handleAddTag() {
     if (newTag.trim() && !artifactTags.includes(newTag.trim())) {
       setArtifactTags([...artifactTags, newTag.trim()])
       setNewTag('')
     }
   }
 
-  // Remove tag
-  const handleRemoveTag = (tagToRemove: string) => {
+  function handleRemoveTag(tagToRemove: string) {
     setArtifactTags(artifactTags.filter(tag => tag !== tagToRemove))
   }
 
-  // Salva tags
-  const handleSaveTags = () => {
-    if (showTagsModal) {
-      updateTagsMutation.mutate({ artifactId: showTagsModal, tags: artifactTags })
-    }
+  async function handleOpenArtifactModal(artifact: Artifact) {
+    setActiveArtifact(artifact)
+    setArtifactModalTab('edit')
+    setEditTitle(artifact.title)
+    setEditDescription(artifact.description || '')
+    setEditColor(artifact.color || null)
+    setArtifactTags(artifact.tags || [])
+    setNewTag('')
+    setEditFile(null)
+    await Promise.all([loadArtifactContent(artifact), loadArtifactChunks(artifact)])
+  }
+
+  function handleCloseArtifactModal() {
+    setActiveArtifact(null)
+    setArtifactModalTab('edit')
+    setArtifactContent(null)
+    setArtifactChunks([])
+    setChunksError(null)
+    setEditTitle('')
+    setEditDescription('')
+    setEditContent('')
+    setOriginalTextContent('')
+    setEditColor(null)
+    setArtifactTags([])
+    setNewTag('')
+    setEditFile(null)
   }
 
   // Função para formatar data
@@ -286,6 +360,18 @@ function AdminArtifactsView() {
                   Artefatos Culturais
                 </h1>
               </div>
+
+              {feedbackAlert && (
+                <Alert
+                  variant={feedbackAlert.type === 'error' ? 'destructive' : 'default'}
+                  className="mb-6 border-l-4"
+                >
+                  <AlertTitle>
+                    {feedbackAlert.type === 'error' ? 'Erro ao processar' : 'Tudo certo!'}
+                  </AlertTitle>
+                  <AlertDescription>{feedbackAlert.message}</AlertDescription>
+                </Alert>
+              )}
               
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6">
                 {/* Card Adicionar Novo */}
@@ -330,20 +416,44 @@ function AdminArtifactsView() {
                   return (
                   <Card
                     key={artifact.id}
-                    className={`relative group hover:shadow-lg transition-all duration-200 ${colorStyles}`}
+                    className={`relative group hover:shadow-lg transition-all duration-200 cursor-pointer ${colorStyles}`}
+                    onClick={() => handleOpenArtifactModal(artifact)}
                   >
                     <CardContent className="p-4 flex flex-col">
+                      <div className="absolute top-3 right-3 flex gap-1">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            deleteArtifactMutation.mutate(artifact.id)
+                          }}
+                          disabled={isDeleting === artifact.id}
+                          className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                        >
+                          {isDeleting === artifact.id ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <Trash2 className="h-4 w-4" />
+                          )}
+                        </Button>
+                      </div>
+
                       <div className="flex-1">
                         {artifact.source_type === 'PDF' ? (
                           <File className="h-10 w-10 text-destructive mb-3" />
                         ) : (
                           <FileText className="h-10 w-10 text-primary mb-3" />
                         )}
-                        <h3 className="font-bold text-foreground mb-1">{artifact.title}</h3>
+                        <h3 className="font-bold text-foreground mb-1 line-clamp-2 min-h-[44px]">{artifact.title}</h3>
                         <p className="text-xs text-muted-foreground">
                           Adicionado {formatDate(artifact.created_at)}
                         </p>
-                        {/* Tags */}
+                        {artifact.source_type === 'PDF' && artifact.source_url && (
+                          <p className="mt-1 text-xs text-muted-foreground line-clamp-1">
+                            PDF original disponível
+                          </p>
+                        )}
                         {artifact.tags && artifact.tags.length > 0 && (
                           <div className="flex flex-wrap gap-1 mt-2">
                             {artifact.tags.slice(0, 2).map((tag, idx) => (
@@ -358,44 +468,6 @@ function AdminArtifactsView() {
                             )}
                           </div>
                         )}
-                      </div>
-                      
-                      {/* Botões de ação (aparecem no hover) */}
-                      <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            handleOpenEditModal(artifact)
-                          }}
-                          className="h-8 w-8 text-blue-600 hover:text-blue-600 hover:bg-blue-600/10"
-                        >
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            handleOpenTagsModal(artifact)
-                          }}
-                          className="h-8 w-8 text-primary hover:text-primary hover:bg-primary/10"
-                        >
-                          <Tag className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            deleteArtifactMutation.mutate(artifact.id)
-                          }}
-                          disabled={deleteArtifactMutation.isPending}
-                          className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
                       </div>
                     </CardContent>
                   </Card>
@@ -542,278 +614,277 @@ function AdminArtifactsView() {
         </DialogContent>
       </Dialog>
 
-      {/* Modal de Tags */}
-      <Dialog open={!!showTagsModal} onOpenChange={(open) => !open && setShowTagsModal(null)}>
-        <DialogContent className="w-[95vw] sm:max-w-lg">
+      <Dialog open={!!activeArtifact} onOpenChange={(open) => {
+        if (!open) {
+          handleCloseArtifactModal()
+        }
+      }}>
+        <DialogContent className="w-[95vw] max-w-5xl max-h-[90vh] flex flex-col">
           <DialogHeader>
-            <DialogTitle>Gerenciar Tags do Artefato</DialogTitle>
+            <DialogTitle>{activeArtifact ? `Gerenciar ${activeArtifact.title}` : 'Gerenciar Artefato'}</DialogTitle>
             <DialogDescription>
-              Adicione ou remova tags para categorizar este artefato cultural
+              Revise os dados originais, atualize informações e visualize os chunks estruturados.
             </DialogDescription>
           </DialogHeader>
-          
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label>Tags Atuais</Label>
-              <div className="flex flex-wrap gap-2 p-3 min-h-[60px] border rounded-md bg-muted/50">
-                {artifactTags.length === 0 ? (
-                  <span className="text-sm text-muted-foreground">Nenhuma tag adicionada</span>
-                ) : (
-                  artifactTags.map((tag) => (
-                    <Badge key={tag} variant="secondary" className="flex items-center gap-1">
-                      {tag}
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveTag(tag)}
-                        className="ml-1 hover:text-destructive"
-                      >
-                        <XCircle className="h-3 w-3" />
-                      </button>
-                    </Badge>
-                  ))
-                )}
-              </div>
-            </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="new-tag">Adicionar Tag</Label>
-              <div className="flex gap-2">
-                <Input
-                  id="new-tag"
-                  placeholder="Ex: Artigo, Comunicação, Política..."
-                  value={newTag}
-                  onChange={(e) => setNewTag(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      e.preventDefault()
-                      handleAddTag()
-                    }
-                  }}
-                />
-                <Button type="button" onClick={handleAddTag} disabled={!newTag.trim()}>
-                  <Plus className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
-          </div>
-          
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => {
-                setShowTagsModal(null)
-                setArtifactTags([])
-                setNewTag('')
-              }}
-            >
-              Cancelar
-            </Button>
-            <Button
-              onClick={handleSaveTags}
-              disabled={updateTagsMutation.isPending}
-            >
-              {updateTagsMutation.isPending ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Salvando...
-                </>
-              ) : (
-                <>
-                  <Check className="h-4 w-4 mr-2" />
-                  Salvar Tags
-                </>
-              )}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          {activeArtifact && (
+            <>
+              <Tabs value={artifactModalTab} onValueChange={(value) => setArtifactModalTab(value as 'edit' | 'chunks')} className="flex-1 flex flex-col">
+                <TabsList className="grid grid-cols-2 w-full">
+                  <TabsTrigger value="edit">Detalhes e Edição</TabsTrigger>
+                  <TabsTrigger value="chunks">Visualização de Chunks</TabsTrigger>
+                </TabsList>
 
-      {/* Modal de Edição */}
-      <Dialog open={showEditModal} onOpenChange={setShowEditModal}>
-        <DialogContent className="w-[95vw] max-w-4xl max-h-[90vh] flex flex-col">
-          <DialogHeader>
-            <DialogTitle>Editar Artefato</DialogTitle>
-            <DialogDescription>
-              Atualize as informações do artefato cultural
-            </DialogDescription>
-          </DialogHeader>
-          
-          <div className="space-y-4 overflow-y-auto pr-2 flex-1">
-            <div className="space-y-2">
-              <Label htmlFor="edit-title">Título do Artefato</Label>
-              <Input
-                id="edit-title"
-                placeholder="Ex: Manual de Valores"
-                value={addTitle}
-                onChange={(e) => setAddTitle(e.target.value)}
-              />
-            </div>
+                <TabsContent value="edit" className="flex-1 focus:outline-none">
+                  <ScrollArea className="h-[55vh] pr-4">
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="edit-title">Título do Artefato</Label>
+                        <Input
+                          id="edit-title"
+                          placeholder="Ex: Manual de Valores"
+                          value={editTitle}
+                          onChange={(e) => setEditTitle(e.target.value)}
+                        />
+                      </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="edit-description">Descrição (opcional)</Label>
-              <Textarea
-                id="edit-description"
-                placeholder="Adicione uma descrição do artefato..."
-                value={addText}
-                onChange={(e) => setAddText(e.target.value)}
-                className="min-h-[80px]"
-              />
-            </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="edit-description">Descrição (opcional)</Label>
+                        <Textarea
+                          id="edit-description"
+                          placeholder="Adicione uma descrição do artefato..."
+                          value={editDescription}
+                          onChange={(e) => setEditDescription(e.target.value)}
+                          className="min-h-[80px]"
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          Esta descrição ajuda a contextualizar o artefato para outros administradores.
+                        </p>
+                      </div>
 
-            {/* Conteúdo do Artefato */}
-            {editingArtifact && editingArtifact.source_type === 'TEXT' && (
-              <div className="space-y-2">
-                <Label htmlFor="edit-content">Conteúdo do Artefato</Label>
-                {loadingContent ? (
-                  <div className="flex items-center justify-center p-8 border rounded-md bg-muted/50">
-                    <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-                    <span className="ml-2 text-sm text-muted-foreground">Carregando conteúdo...</span>
-                  </div>
-                ) : (
-                  <Textarea
-                    id="edit-content"
-                    placeholder="Edite o conteúdo do artefato..."
-                    value={editContent}
-                    onChange={(e) => setEditContent(e.target.value)}
-                    className="min-h-[300px] font-mono text-sm"
-                  />
-                )}
-              </div>
-            )}
+                      {activeArtifact.source_type === 'TEXT' && (
+                        <div className="space-y-2">
+                          <Label htmlFor="edit-content">Conteúdo Original</Label>
+                          {isLoadingArtifactContent ? (
+                            <div className="flex items-center justify-center p-8 border rounded-md bg-muted/50">
+                              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                              <span className="ml-2 text-sm text-muted-foreground">Carregando conteúdo...</span>
+                            </div>
+                          ) : (
+                            <Textarea
+                              id="edit-content"
+                              placeholder="Edite o conteúdo do artefato..."
+                              value={editContent}
+                              onChange={(e) => setEditContent(e.target.value)}
+                              className="min-h-[300px] font-mono text-sm"
+                            />
+                          )}
+                          <p className="text-xs text-muted-foreground">
+                            Alterações neste texto irão disparar uma nova etapa de chunking inteligente ao salvar.
+                          </p>
+                        </div>
+                      )}
 
-            {/* Substituir PDF */}
-            {editingArtifact && editingArtifact.source_type === 'PDF' && (
-              <div className="space-y-3 p-4 border rounded-lg bg-muted/50">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <Label>Arquivo PDF Atual</Label>
-                    <p className="text-sm text-muted-foreground">Este artefato foi criado a partir de um PDF</p>
-                  </div>
-                  <Button
-                    type="button"
-                    variant={replaceFile ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => setReplaceFile(!replaceFile)}
-                  >
-                    {replaceFile ? 'Cancelar substituição' : 'Substituir PDF'}
-                  </Button>
-                </div>
-                
-                {replaceFile && (
-                  <div className="space-y-2 pt-2">
-                    <Label htmlFor="replace-pdf">Novo Arquivo PDF</Label>
-                    <Input
-                      id="replace-pdf"
-                      type="file"
-                      accept=".pdf"
-                      onChange={(e) => setAddFile(e.target.files?.[0] || null)}
-                    />
-                    <p className="text-xs text-muted-foreground">
-                      O arquivo será reprocessado e os chunks atualizados automaticamente
-                    </p>
-                  </div>
-                )}
-              </div>
-            )}
+                      {activeArtifact.source_type === 'PDF' && (
+                        <div className="space-y-3 p-4 border rounded-lg bg-muted/50">
+                          <div>
+                            <Label>Arquivo PDF Original</Label>
+                            <p className="text-sm text-muted-foreground mb-2">
+                              Visualize o arquivo original ou envie uma nova versão para reprocessar os chunks.
+                            </p>
+                            {(() => {
+                              const pdfSourceUrl =
+                                artifactContent?.source_type === 'PDF'
+                                  ? artifactContent.source_url
+                                  : activeArtifact.source_url || undefined
+                              return pdfSourceUrl ? (
+                                <Button variant="link" className="px-0" asChild>
+                                  <a href={pdfSourceUrl} target="_blank" rel="noopener noreferrer">
+                                    Abrir PDF original em nova aba
+                                  </a>
+                                </Button>
+                              ) : (
+                                <p className="text-xs text-muted-foreground">Nenhum link direto disponível para este PDF.</p>
+                              )
+                            })()}
+                          </div>
+                          <div className="space-y-2 pt-2">
+                            <Label htmlFor="replace-pdf">Substituir PDF</Label>
+                            <Input
+                              id="replace-pdf"
+                              type="file"
+                              accept=".pdf"
+                              onChange={(e) => setEditFile(e.target.files?.[0] || null)}
+                            />
+                            {editFile && (
+                              <p className="text-xs text-muted-foreground">Arquivo selecionado: {editFile.name}</p>
+                            )}
+                            <p className="text-xs text-muted-foreground">
+                              Ao salvar, o novo PDF será processado e todos os chunks serão atualizados.
+                            </p>
+                          </div>
+                        </div>
+                      )}
 
-            <div className="space-y-2">
-              <Label>Tags</Label>
-              <div className="flex flex-wrap gap-2 p-3 min-h-[60px] border rounded-md bg-muted/50">
-                {artifactTags.length === 0 ? (
-                  <span className="text-sm text-muted-foreground">Nenhuma tag adicionada</span>
-                ) : (
-                  artifactTags.map((tag) => (
-                    <Badge key={tag} variant="secondary" className="flex items-center gap-1">
-                      {tag}
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveTag(tag)}
-                        className="ml-1 hover:text-destructive"
-                      >
-                        <XCircle className="h-3 w-3" />
-                      </button>
-                    </Badge>
-                  ))
-                )}
-              </div>
-              <div className="flex gap-2">
-                <Input
-                  placeholder="Ex: Artigo, Comunicação, Política..."
-                  value={newTag}
-                  onChange={(e) => setNewTag(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      e.preventDefault()
-                      handleAddTag()
-                    }
-                  }}
-                />
-                <Button type="button" size="icon" onClick={handleAddTag} disabled={!newTag.trim()}>
-                  <Plus className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
+                      <div className="space-y-2">
+                        <Label>Tags</Label>
+                        <div className="flex flex-wrap gap-2 p-3 min-h-[60px] border rounded-md bg-muted/50">
+                          {artifactTags.length === 0 ? (
+                            <span className="text-sm text-muted-foreground">Nenhuma tag adicionada</span>
+                          ) : (
+                            artifactTags.map((tag) => (
+                              <Badge key={tag} variant="secondary" className="flex items-center gap-1">
+                                {tag}
+                                <button
+                                  type="button"
+                                  onClick={() => handleRemoveTag(tag)}
+                                  className="ml-1 hover:text-destructive"
+                                >
+                                  x
+                                </button>
+                              </Badge>
+                            ))
+                          )}
+                        </div>
+                        <div className="flex gap-2">
+                          <Input
+                            placeholder="Ex: Artigo, Comunicação, Política..."
+                            value={newTag}
+                            onChange={(e) => setNewTag(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') {
+                                e.preventDefault()
+                                handleAddTag()
+                              }
+                            }}
+                          />
+                          <Button type="button" size="icon" onClick={handleAddTag} disabled={!newTag.trim()}>
+                            <Plus className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
 
-            <div className="space-y-3">
-              <Label>Tema do Card (opcional)</Label>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 md:gap-3">
-                {COLOR_PALETTE.map((color) => (
-                  <button
-                    key={color.value || 'none'}
-                    type="button"
-                    onClick={() => setAddColor(color.value)}
-                    className={`group flex flex-col items-center gap-2 p-3 rounded-lg border-2 transition-all ${
-                      addColor === color.value
-                        ? 'border-primary bg-primary/5'
-                        : 'border-border hover:border-primary/50 hover:bg-accent'
-                    }`}
-                  >
-                    <div className={`w-full h-10 rounded-md ${color.preview}`} />
-                    <div className="text-center">
-                      <p className="text-xs font-medium">{color.name}</p>
-                      <p className="text-[10px] text-muted-foreground line-clamp-1">{color.description}</p>
+                      <div className="space-y-3">
+                        <Label>Tema do Card (opcional)</Label>
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 md:gap-3">
+                          {COLOR_PALETTE.map((color) => (
+                            <button
+                              key={color.value || 'none'}
+                              type="button"
+                              onClick={() => setEditColor(color.value)}
+                              className={`group flex flex-col items-center gap-2 p-3 rounded-lg border-2 transition-all ${
+                                editColor === color.value
+                                  ? 'border-primary bg-primary/5'
+                                  : 'border-border hover:border-primary/50 hover:bg-accent'
+                              }`}
+                            >
+                              <div className={`w-full h-10 rounded-md ${color.preview}`} />
+                              <div className="text-center">
+                                <p className="text-xs font-medium">{color.name}</p>
+                                <p className="text-[10px] text-muted-foreground line-clamp-1">{color.description}</p>
+                              </div>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
                     </div>
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-          
-          <DialogFooter className="flex-shrink-0">
-            <Button
-              variant="outline"
-              onClick={() => {
-                setShowEditModal(false)
-                setEditingArtifact(null)
-                setAddTitle('')
-                setAddText('')
-                setArtifactTags([])
-                setAddColor(null)
-                setNewTag('')
-                setEditContent('')
-                setReplaceFile(false)
-                setAddFile(null)
-              }}
-            >
-              Cancelar
-            </Button>
-            <Button
-              onClick={() => updateArtifactMutation.mutate()}
-              disabled={updateArtifactMutation.isPending || !addTitle.trim()}
-            >
-              {updateArtifactMutation.isPending ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Salvando...
-                </>
-              ) : (
-                <>
-                  <Check className="h-4 w-4 mr-2" />
-                  Salvar Alterações
-                </>
-              )}
-            </Button>
-          </DialogFooter>
+                  </ScrollArea>
+                </TabsContent>
+
+                <TabsContent value="chunks" className="flex-1 focus:outline-none">
+                  <ScrollArea className="h-[55vh] pr-4">
+                    <div className="space-y-4">
+                      <div>
+                        <h3 className="text-sm font-semibold text-foreground">Estrutura do Artefato</h3>
+                        <p className="text-xs text-muted-foreground">
+                          Visualize os chunks gerados, incluindo hierarquia e metadados estruturais.
+                        </p>
+                      </div>
+
+                      {isLoadingChunks ? (
+                        <div className="flex items-center justify-center p-8 border rounded-md bg-muted/50">
+                          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                          <span className="ml-2 text-sm text-muted-foreground">Carregando chunks...</span>
+                        </div>
+                      ) : chunksError ? (
+                        <Alert variant="destructive">
+                          <AlertTitle>Não foi possível carregar os chunks</AlertTitle>
+                          <AlertDescription>{chunksError}</AlertDescription>
+                        </Alert>
+                      ) : artifactChunks.length === 0 ? (
+                        <p className="text-sm text-muted-foreground">
+                          Nenhum chunk encontrado para este artefato ainda.
+                        </p>
+                      ) : (
+                        <div className="space-y-3">
+                          {artifactChunks.map((chunk) => {
+                            const metadata = chunk.metadata
+                            const breadcrumbs = metadata?.breadcrumbs ?? []
+                            const indentation = breadcrumbs.length * 12
+                            return (
+                              <div
+                                key={chunk.id}
+                                className="rounded-lg border bg-background p-4 shadow-sm"
+                                style={{ marginLeft: indentation ? `${indentation}px` : undefined }}
+                              >
+                                <div className="flex flex-wrap items-center justify-between gap-2">
+                                  <div className="flex flex-col">
+                                    <span className="text-xs font-semibold text-muted-foreground">
+                                      Chunk {metadata?.position ?? 'N/A'} • {metadata?.token_count ?? 0} tokens
+                                    </span>
+                                    {metadata?.section_title && (
+                                      <span className="text-sm font-medium text-foreground">
+                                        {metadata.section_title}
+                                      </span>
+                                    )}
+                                  </div>
+                                  {metadata?.content_type && (
+                                    <Badge variant="outline" className="text-[11px] uppercase tracking-wide">
+                                      {metadata.content_type}
+                                    </Badge>
+                                  )}
+                                </div>
+                                {breadcrumbs.length > 0 && (
+                                  <p className="mt-1 text-xs text-muted-foreground">
+                                    {breadcrumbs.join(' > ')}
+                                  </p>
+                                )}
+                                <p className="mt-3 text-sm leading-relaxed whitespace-pre-line text-foreground/90">
+                                  {chunk.content}
+                                </p>
+                              </div>
+                            )
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  </ScrollArea>
+                </TabsContent>
+              </Tabs>
+
+              <DialogFooter className="flex-shrink-0 pt-4">
+                <Button variant="outline" onClick={handleCloseArtifactModal}>
+                  Fechar
+                </Button>
+                <Button
+                  onClick={() => updateArtifactMutation.mutate()}
+                  disabled={artifactModalTab !== 'edit' || updateArtifactMutation.isPending || !editTitle.trim()}
+                >
+                  {updateArtifactMutation.isPending ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Salvando...
+                    </>
+                  ) : (
+                    <>
+                      <Check className="h-4 w-4 mr-2" />
+                      Salvar
+                    </>
+                  )}
+                </Button>
+              </DialogFooter>
+            </>
+          )}
         </DialogContent>
       </Dialog>
     </div>

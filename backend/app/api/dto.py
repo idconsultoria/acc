@@ -5,6 +5,24 @@ from datetime import datetime
 from uuid import UUID
 
 
+class ChunkMetadataDTO(BaseModel):
+    """DTO para metadados de chunk."""
+    section_title: str | None = None
+    section_level: int | None = None
+    content_type: str | None = None
+    position: int | None = None
+    token_count: int | None = None
+    breadcrumbs: list[str] = []
+
+
+class ArtifactChunkDTO(BaseModel):
+    """DTO para chunk de artefato."""
+    id: UUID
+    artifact_id: UUID
+    content: str
+    metadata: ChunkMetadataDTO | None = None
+
+
 class ArtifactDTO(BaseModel):
     """DTO para Artefato."""
     id: UUID
@@ -14,6 +32,8 @@ class ArtifactDTO(BaseModel):
     description: str | None = None
     tags: list[str] = []
     color: str | None = None
+    source_url: str | None = None
+    original_content: str | None = None
 
 
 class UpdateArtifactPayload(BaseModel):
@@ -31,9 +51,14 @@ class UpdateArtifactTagsPayload(BaseModel):
 
 class CitedSourceDTO(BaseModel):
     """DTO para Fonte Citada."""
+    chunk_id: UUID
     artifact_id: UUID
     title: str
     chunk_content_preview: str
+    section_title: str | None = None
+    section_level: int | None = None
+    content_type: str | None = None
+    breadcrumbs: list[str] = []
 
 
 class MessageDTO(BaseModel):

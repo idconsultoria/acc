@@ -6,7 +6,7 @@ from app.domain.shared_kernel import (
     ArtifactId, ConversationId, MessageId, ChunkId,
     FeedbackId, LearningId, TopicId, Embedding
 )
-from app.domain.artifacts.types import Artifact, ArtifactChunk, ArtifactSourceType
+from app.domain.artifacts.types import Artifact, ArtifactChunk, ArtifactSourceType, ChunkMetadata
 from app.domain.conversations.types import Conversation, Message, Author, CitedSource
 from app.domain.feedbacks.types import PendingFeedback, FeedbackStatus
 from app.domain.learnings.types import Learning
@@ -61,7 +61,15 @@ class TestArtifactChunk:
             id=sample_chunk_id,
             artifact_id=sample_artifact_id,
             content="Conteúdo",
-            embedding=sample_embedding
+            embedding=sample_embedding,
+            metadata=ChunkMetadata(
+                section_title="Sessão",
+                section_level=1,
+                content_type="paragraph",
+                position=0,
+                token_count=10,
+                breadcrumbs=["Sessão"],
+            ),
         )
         
         # Tentar modificar deve falhar
@@ -87,6 +95,7 @@ class TestArtifact:
         assert artifact.source_type == ArtifactSourceType.TEXT
         assert len(artifact.chunks) == 1
         assert artifact.source_url is None
+        assert artifact.original_content is None
     
     def test_create_artifact_pdf(self, sample_artifact_id, sample_artifact_chunk):
         """Testa criação de Artifact do tipo PDF."""
@@ -100,6 +109,7 @@ class TestArtifact:
         
         assert artifact.source_type == ArtifactSourceType.PDF
         assert artifact.source_url == "https://example.com/file.pdf"
+        assert artifact.original_content is None
     
     def test_artifact_with_multiple_chunks(self, sample_artifact_id, sample_embedding):
         """Testa Artifact com múltiplos chunks."""
@@ -108,7 +118,15 @@ class TestArtifact:
                 id=ChunkId(uuid.uuid4()),
                 artifact_id=sample_artifact_id,
                 content=f"Chunk {i}",
-                embedding=sample_embedding
+                embedding=sample_embedding,
+                metadata=ChunkMetadata(
+                    section_title=f"Seção {i}",
+                    section_level=2,
+                    content_type="paragraph",
+                    position=i,
+                    token_count=15,
+                    breadcrumbs=["Seção Pai", f"Seção {i}"],
+                ),
             )
             for i in range(5)
         ]
@@ -140,9 +158,14 @@ class TestCitedSource:
     def test_create_cited_source(self, sample_artifact_id):
         """Testa criação de CitedSource."""
         cited_source = CitedSource(
+            chunk_id=ChunkId(uuid.uuid4()),
             artifact_id=sample_artifact_id,
             title="Título da Fonte",
-            chunk_content_preview="Preview do conteúdo..."
+            chunk_content_preview="Preview do conteúdo...",
+            section_title="Seção",
+            section_level=2,
+            content_type="paragraph",
+            breadcrumbs=["Seção"],
         )
         
         assert cited_source.artifact_id == sample_artifact_id
@@ -174,9 +197,14 @@ class TestMessage:
                                        sample_artifact_id):
         """Testa Message com fontes citadas."""
         cited_source = CitedSource(
+            chunk_id=ChunkId(uuid.uuid4()),
             artifact_id=sample_artifact_id,
             title="Fonte",
-            chunk_content_preview="Preview"
+            chunk_content_preview="Preview",
+            section_title="Seção",
+            section_level=1,
+            content_type="paragraph",
+            breadcrumbs=["Seção"],
         )
         
         message = Message(

@@ -1,7 +1,8 @@
 """Repositório de Conversas usando Supabase."""
+import json
 from supabase import create_client, Client
 from app.domain.conversations.types import Conversation, Message, Author, CitedSource
-from app.domain.shared_kernel import ConversationId, MessageId, ArtifactId, TopicId
+from app.domain.shared_kernel import ConversationId, MessageId, ArtifactId, TopicId, ChunkId
 from app.infrastructure.persistence.config import SUPABASE_URL, SUPABASE_KEY
 from datetime import datetime
 import uuid
@@ -168,7 +169,16 @@ class ConversationsRepository:
                 # ou uma query por chunk (ainda melhor que N queries por mensagem)
                 for chunk_id in all_chunk_ids:
                     try:
-                        chunk_result = self.supabase.table("artifact_chunks").select("id, artifact_id, content, artifacts(title)").eq("id", chunk_id).limit(1).execute()
+                        chunk_result = (
+                            self.supabase
+                            .table("artifact_chunks")
+                            .select(
+                                "id, artifact_id, content, section_title, section_level, content_type, position, token_count, breadcrumbs, artifacts(title)"
+                            )
+                            .eq("id", chunk_id)
+                            .limit(1)
+                            .execute()
+                        )
                         if chunk_result.data:
                             chunks_data[chunk_id] = chunk_result.data[0]
                     except Exception:
@@ -193,11 +203,21 @@ class ConversationsRepository:
                                 artifact_title = chunk_data["artifacts"].get("title", "")
                             elif isinstance(chunk_data["artifacts"], list) and chunk_data["artifacts"]:
                                 artifact_title = chunk_data["artifacts"][0].get("title", "")
-                        
+                        breadcrumbs = chunk_data.get("breadcrumbs") or []
+                        if isinstance(breadcrumbs, str):
+                            try:
+                                breadcrumbs = json.loads(breadcrumbs)
+                            except json.JSONDecodeError:
+                                breadcrumbs = []
                         cited_source = CitedSource(
+                            chunk_id=ChunkId(uuid.UUID(chunk_data["id"])),
                             artifact_id=ArtifactId(uuid.UUID(chunk_data["artifact_id"])),
                             title=artifact_title,
-                            chunk_content_preview=chunk_data.get("content", "")[:200]
+                            chunk_content_preview=chunk_data.get("content", "")[:200],
+                            section_title=chunk_data.get("section_title"),
+                            section_level=chunk_data.get("section_level"),
+                            content_type=chunk_data.get("content_type"),
+                            breadcrumbs=breadcrumbs,
                         )
                         cited_sources.append(cited_source)
             
@@ -240,7 +260,7 @@ class ConversationsRepository:
                 
                 if not existing.data:
                     # Prepara cited_artifact_chunk_ids
-                    cited_chunk_ids = [str(cs.artifact_id) for cs in msg.cited_sources]
+                    cited_chunk_ids = [str(cs.chunk_id) for cs in msg.cited_sources if cs.chunk_id]
                     
                     message_data = {
                         "id": str(msg.id),

@@ -57,9 +57,14 @@ async def get_conversation_messages(conversation_id: str):
             content=msg.content,
             cited_sources=[
                 CitedSourceDTO(
+                    chunk_id=cs.chunk_id,
                     artifact_id=cs.artifact_id,
                     title=cs.title,
-                    chunk_content_preview=cs.chunk_content_preview
+                    chunk_content_preview=cs.chunk_content_preview,
+                    section_title=cs.section_title,
+                    section_level=cs.section_level,
+                    content_type=cs.content_type,
+                    breadcrumbs=cs.breadcrumbs
                 )
                 for cs in msg.cited_sources
             ],
@@ -179,9 +184,14 @@ async def post_message(conversation_id: str, payload: CreateMessagePayload):
         content=agent_message.content,
         cited_sources=[
             CitedSourceDTO(
+                chunk_id=cs.chunk_id,
                 artifact_id=cs.artifact_id,
                 title=cs.title,
-                chunk_content_preview=cs.chunk_content_preview
+                chunk_content_preview=cs.chunk_content_preview,
+                section_title=cs.section_title,
+                section_level=cs.section_level,
+                content_type=cs.content_type,
+                breadcrumbs=cs.breadcrumbs
             )
             for cs in agent_message.cited_sources
         ],

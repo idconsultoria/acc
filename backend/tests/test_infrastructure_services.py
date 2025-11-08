@@ -5,7 +5,7 @@ from app.infrastructure.ai.embedding_service import EmbeddingGenerator
 from app.infrastructure.ai.gemini_service import GeminiService, RelevantKnowledge, get_gemini_api_key
 from app.infrastructure.ai.topic_classifier import TopicClassifier
 from app.infrastructure.files.pdf_processor import PDFProcessor
-from app.domain.artifacts.types import ArtifactChunk
+from app.domain.artifacts.types import ArtifactChunk, ChunkMetadata
 from app.domain.learnings.types import Learning
 from app.domain.agent.types import AgentInstruction
 from app.domain.conversations.types import Message, Author
@@ -109,7 +109,15 @@ class TestGeminiService:
                 id=ChunkId(uuid.uuid4()),
                 artifact_id=ArtifactId(uuid.uuid4()),
                 content="Conteúdo do chunk",
-                embedding=Embedding(vector=[0.1] * 100)
+                embedding=Embedding(vector=[0.1] * 100),
+                metadata=ChunkMetadata(
+                    section_title="Seção",
+                    section_level=1,
+                    content_type="paragraph",
+                    position=0,
+                    token_count=10,
+                    breadcrumbs=["Seção"],
+                ),
             )
             
             knowledge = RelevantKnowledge(
@@ -257,20 +265,20 @@ class TestPDFProcessor:
     """Testes para PDFProcessor."""
     
     def test_extract_text_not_implemented(self):
-        """Testa que extract_text levanta NotImplementedError."""
+        """Testa que extract_text retorna string vazia quando não há suporte."""
         processor = PDFProcessor()
         
-        with pytest.raises(NotImplementedError):
-            processor.extract_text(b"PDF content")
+        text = processor.extract_text(b"PDF content")
+        assert isinstance(text, str)
+        assert text == ""
     
     def test_pdf_processor_message(self):
-        """Testa que a mensagem de erro é informativa."""
+        """Testa fallback de extract_with_metadata quando não há suporte."""
         processor = PDFProcessor()
         
-        try:
-            processor.extract_text(b"PDF content")
-        except NotImplementedError as e:
-            assert "temporariamente desabilitado" in str(e).lower() or "desabilitado" in str(e).lower()
+        segments = processor.extract_with_metadata(b"PDF content")
+        assert isinstance(segments, list)
+        assert segments == [] or (len(segments) == 1 and isinstance(segments[0], tuple))
 
 
 class TestRelevantKnowledge:
@@ -282,7 +290,15 @@ class TestRelevantKnowledge:
             id=ChunkId(uuid.uuid4()),
             artifact_id=ArtifactId(uuid.uuid4()),
             content="Conteúdo",
-            embedding=Embedding(vector=[0.1] * 100)
+            embedding=Embedding(vector=[0.1] * 100),
+            metadata=ChunkMetadata(
+                section_title="Seção",
+                section_level=1,
+                content_type="paragraph",
+                position=0,
+                token_count=10,
+                breadcrumbs=["Seção"],
+            ),
         )
         
         learning = Learning(

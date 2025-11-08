@@ -7,7 +7,7 @@ from app.domain.shared_kernel import (
     ArtifactId, ConversationId, MessageId, ChunkId,
     FeedbackId, LearningId, TopicId, Embedding
 )
-from app.domain.artifacts.types import Artifact, ArtifactChunk, ArtifactSourceType
+from app.domain.artifacts.types import Artifact, ArtifactChunk, ArtifactSourceType, ChunkMetadata
 from app.domain.conversations.types import Conversation, Message, Author
 from app.domain.feedbacks.types import PendingFeedback, FeedbackStatus
 from app.domain.learnings.types import Learning
@@ -37,7 +37,15 @@ class TestArtifactsRepository:
             id=ChunkId(uuid.uuid4()),
             artifact_id=artifact_id,
             content="Conteúdo",
-            embedding=Embedding(vector=[0.1] * 100)
+            embedding=Embedding(vector=[0.1] * 100),
+            metadata=ChunkMetadata(
+                section_title="Seção",
+                section_level=1,
+                content_type="paragraph",
+                position=0,
+                token_count=10,
+                breadcrumbs=["Seção"],
+            ),
         )
         artifact = Artifact(
             id=artifact_id,
@@ -78,7 +86,13 @@ class TestArtifactsRepository:
             "id": str(uuid.uuid4()),
             "artifact_id": str(uuid.uuid4()),
             "content": "Conteúdo",
-            "embedding": [0.1] * 100
+            "embedding": [0.1] * 100,
+            "section_title": "Seção",
+            "section_level": 1,
+            "content_type": "paragraph",
+            "position": 0,
+            "token_count": 10,
+            "breadcrumbs": ["Seção"],
         }])
         
         def table_side_effect(table_name):

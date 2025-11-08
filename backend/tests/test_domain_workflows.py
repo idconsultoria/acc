@@ -75,6 +75,9 @@ class TestCreateArtifactFromText:
         assert artifact.source_type.name == "TEXT"
         assert len(artifact.chunks) > 0
         assert all(chunk.artifact_id == artifact.id for chunk in artifact.chunks)
+        assert all(chunk.metadata is not None for chunk in artifact.chunks)
+        assert [chunk.metadata.position for chunk in artifact.chunks if chunk.metadata] == list(range(len(artifact.chunks)))
+        assert artifact.original_content == text
         # Verifica que generate foi chamado para cada chunk
         assert mock_embedding_generator.generate.call_count == len(artifact.chunks)
     
@@ -88,6 +91,7 @@ class TestCreateArtifactFromText:
         
         assert artifact.title == "Artefato Vazio"
         assert len(artifact.chunks) == 0
+        assert artifact.original_content == ""
     
     def test_create_artifact_from_text_large(self, mock_embedding_generator):
         """Testa criação de artefato com texto grande."""
@@ -101,6 +105,8 @@ class TestCreateArtifactFromText:
         assert len(artifact.chunks) > 1
         # Verifica que todos os chunks têm embeddings
         assert all(chunk.embedding.vector for chunk in artifact.chunks)
+        assert all(chunk.metadata is not None for chunk in artifact.chunks)
+        assert artifact.original_content == text
 
 
 class TestCreateArtifactFromPdf:
@@ -120,8 +126,11 @@ class TestCreateArtifactFromPdf:
         
         assert artifact.title == "Artefato PDF"
         assert artifact.source_type.name == "PDF"
+        mock_pdf_processor.extract_with_metadata.assert_called_once_with(pdf_content)
         mock_pdf_processor.extract_text.assert_called_once_with(pdf_content)
         assert mock_embedding_generator.generate.call_count == len(artifact.chunks)
+        assert all(chunk.metadata is not None for chunk in artifact.chunks)
+        assert artifact.original_content is None
 
 
 class TestContinueConversation:
@@ -209,6 +218,8 @@ class TestContinueConversation:
         agent_message = updated_conversation.messages[1]
         assert len(agent_message.cited_sources) == 1
         assert agent_message.cited_sources[0].artifact_id == sample_artifact_chunk.artifact_id
+        assert agent_message.cited_sources[0].chunk_id == sample_artifact_chunk.id
+        assert agent_message.cited_sources[0].section_title == sample_artifact_chunk.metadata.section_title
 
 
 class TestSubmitFeedback:

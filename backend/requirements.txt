@@ -11,6 +11,7 @@ pytest-cov==5.0.0
 pytest-asyncio==0.24.0
 pytest-mock==3.14.0
 httpx==0.27.2
+tiktoken==0.7.0
 # pymupdf - removido (muito pesado ~60-90 MB)
 # numpy - removido (não usado diretamente ~20-30 MB)
 # uvicorn[standard] -> uvicorn (economiza ~10-15 MB)

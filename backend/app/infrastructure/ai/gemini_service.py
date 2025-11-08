@@ -69,8 +69,21 @@ class GeminiService:
         artifacts_context = ""
         cited_chunks = []
         
-        for chunk in knowledge.relevant_artifacts[:5]:  # Limita a 5 chunks mais relevantes
-            artifacts_context += f"\n\n--- Fonte: {chunk.artifact_id} ---\n{chunk.content}\n"
+        for idx, chunk in enumerate(knowledge.relevant_artifacts[:5], start=1):  # Limita a 5 chunks mais relevantes
+            metadata = chunk.metadata
+            section_title = metadata.section_title if metadata else None
+            breadcrumbs = " › ".join(metadata.breadcrumbs) if metadata and metadata.breadcrumbs else ""
+            content_type = metadata.content_type if metadata else None
+            header_title = section_title or f"Trecho {idx}"
+            header = f"### Fonte {idx} — {header_title}"
+            details = []
+            if breadcrumbs:
+                details.append(f"Breadcrumbs: {breadcrumbs}")
+            if content_type:
+                details.append(f"Tipo: {content_type}")
+            metadata_block = "\n".join(details)
+            chunk_text = f"{header}\n{metadata_block}\n\n{chunk.content}" if metadata_block else f"{header}\n\n{chunk.content}"
+            artifacts_context += f"\n\n{chunk_text.strip()}"
             cited_chunks.append(chunk)
         
         # Constrói o contexto dos aprendizados

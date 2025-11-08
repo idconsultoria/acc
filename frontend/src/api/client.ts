@@ -66,7 +66,29 @@ export interface Artifact {
   description?: string
   tags?: string[]
   color?: string
+  source_url?: string | null
+  original_content?: string | null
 }
+
+export interface ArtifactChunkMetadata {
+  section_title?: string | null
+  section_level?: number | null
+  content_type?: string | null
+  position?: number | null
+  token_count?: number | null
+  breadcrumbs: string[]
+}
+
+export interface ArtifactChunk {
+  id: string
+  artifact_id: string
+  content: string
+  metadata?: ArtifactChunkMetadata | null
+}
+
+export type ArtifactContentResponse =
+  | { source_type: 'TEXT'; content: string }
+  | { source_type: 'PDF'; source_url?: string | null }
 
 export interface Message {
   id: string
@@ -78,9 +100,14 @@ export interface Message {
 }
 
 export interface CitedSource {
+  chunk_id: string
   artifact_id: string
   title: string
   chunk_content_preview: string
+  section_title?: string | null
+  section_level?: number | null
+  content_type?: string | null
+  breadcrumbs: string[]
 }
 
 export interface PendingFeedback {
@@ -143,8 +170,13 @@ export const api = {
     await apiClient.delete(`/artifacts/${artifact_id}`)
   },
   
-  getArtifactContent: async (artifact_id: string): Promise<{ content: string }> => {
+  getArtifactContent: async (artifact_id: string): Promise<ArtifactContentResponse> => {
     const response = await apiClient.get(`/artifacts/${artifact_id}/content`)
+    return response.data
+  },
+
+  getArtifactChunks: async (artifact_id: string): Promise<ArtifactChunk[]> => {
+    const response = await apiClient.get(`/artifacts/${artifact_id}/chunks`)
     return response.data
   },
 

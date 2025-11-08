@@ -1,7 +1,8 @@
 """Repositório de Artefatos usando Supabase."""
 from typing import Protocol
+import json
 from supabase import create_client, Client
-from app.domain.artifacts.types import Artifact, ArtifactChunk, ArtifactSourceType
+from app.domain.artifacts.types import Artifact, ArtifactChunk, ArtifactSourceType, ChunkMetadata
 from app.domain.shared_kernel import ArtifactId, ChunkId, Embedding
 from app.infrastructure.persistence.config import SUPABASE_URL, SUPABASE_KEY
 import uuid
@@ -33,6 +34,7 @@ class ArtifactsRepository:
             "source_type": artifact.source_type.name,
             "source_url": source_url,
             "color": color,
+            "original_content": artifact.original_content,
             "created_at": "now()"
         }
         
@@ -40,11 +42,18 @@ class ArtifactsRepository:
         
         # Salva os chunks com seus embeddings
         for chunk in artifact.chunks:
+            metadata = chunk.metadata
             chunk_data = {
                 "id": str(chunk.id),
                 "artifact_id": str(chunk.artifact_id),
                 "content": chunk.content,
-                "embedding": chunk.embedding.vector
+                "embedding": chunk.embedding.vector,
+                "section_title": metadata.section_title if metadata else None,
+                "section_level": metadata.section_level if metadata else None,
+                "content_type": metadata.content_type if metadata else None,
+                "position": metadata.position if metadata else None,
+                "token_count": metadata.token_count if metadata else None,
+                "breadcrumbs": metadata.breadcrumbs if metadata else None,
             }
             
             self.supabase.table("artifact_chunks").insert(chunk_data).execute()
@@ -66,13 +75,48 @@ class ArtifactsRepository:
         # Converte os chunks (precisa dos embeddings)
         chunks = []
         for chunk_row in chunks_result.data:
+            breadcrumbs = chunk_row.get("breadcrumbs") or []
+            if isinstance(breadcrumbs, str):
+                try:
+                    breadcrumbs = json.loads(breadcrumbs)
+                except json.JSONDecodeError:
+                    breadcrumbs = []
             chunk = ArtifactChunk(
                 id=ChunkId(uuid.UUID(chunk_row["id"])),
                 artifact_id=ArtifactId(uuid.UUID(chunk_row["artifact_id"])),
                 content=chunk_row["content"],
-                embedding=Embedding(vector=chunk_row["embedding"])
+                embedding=Embedding(vector=chunk_row["embedding"]),
+                metadata=None
             )
+            if any(
+                key in chunk_row
+                for key in [
+                    "section_title",
+                    "section_level",
+                    "content_type",
+                    "position",
+                    "token_count",
+                    "breadcrumbs",
+                ]
+            ):
+                metadata = ChunkMetadata(
+                    section_title=chunk_row.get("section_title"),
+                    section_level=chunk_row.get("section_level"),
+                    content_type=chunk_row.get("content_type"),
+                    position=chunk_row.get("position", 0),
+                    token_count=chunk_row.get("token_count", 0),
+                    breadcrumbs=breadcrumbs,
+                )
+                chunk = ArtifactChunk(
+                    id=chunk.id,
+                    artifact_id=chunk.artifact_id,
+                    content=chunk.content,
+                    embedding=chunk.embedding,
+                    metadata=metadata,
+                )
             chunks.append(chunk)
+
+        chunks.sort(key=lambda c: c.metadata.position if c.metadata else 0)
         
         source_type = ArtifactSourceType[artifact_row["source_type"]]
         
@@ -81,7 +125,8 @@ class ArtifactsRepository:
             title=artifact_row["title"],
             source_type=source_type,
             chunks=chunks,
-            source_url=artifact_row.get("source_url")
+            source_url=artifact_row.get("source_url"),
+            original_content=artifact_row.get("original_content")
         )
     
     async def get_artifact_data(self, artifact_id: ArtifactId) -> dict | None:
@@ -94,7 +139,8 @@ class ArtifactsRepository:
         return {
             "description": result.data[0].get("description"),
             "tags": result.data[0].get("tags", []) or [],
-            "color": result.data[0].get("color")
+            "color": result.data[0].get("color"),
+            "original_content": result.data[0].get("original_content")
         }
     
     async def update_artifact_tags(self, artifact_id: ArtifactId, tags: list[str]) -> None:
@@ -115,28 +161,36 @@ class ArtifactsRepository:
     
     async def update_artifact_content(self, artifact_id: ArtifactId, new_content: str, embedding_generator) -> None:
         """Atualiza o conteúdo de um artefato TEXT re-processando os chunks."""
-        from app.domain.artifacts.workflows import chunk_text
+        from app.domain.artifacts.workflows import _generate_structured_chunks
         
         # Deleta chunks antigos
         self.supabase.table("artifact_chunks").delete().eq("artifact_id", str(artifact_id)).execute()
         
         # Cria novos chunks
-        text_chunks = chunk_text(new_content)
-        
-        for i, text_chunk in enumerate(text_chunks):
-            from app.domain.shared_kernel import ChunkId, Embedding
-            chunk_id = ChunkId(uuid.uuid4())
-            embedding_vector = embedding_generator.generate(text_chunk)
-            embedding = Embedding(vector=embedding_vector)
-            
+        artifact_chunks = _generate_structured_chunks(
+            text_content=new_content,
+            artifact_id=artifact_id,
+            embedding_generator=embedding_generator,
+        )
+
+        for chunk in artifact_chunks:
+            metadata = chunk.metadata
             chunk_data = {
-                "id": str(chunk_id),
+                "id": str(chunk.id),
                 "artifact_id": str(artifact_id),
-                "content": text_chunk,
-                "embedding": embedding.vector
+                "content": chunk.content,
+                "embedding": chunk.embedding.vector,
+                "section_title": metadata.section_title if metadata else None,
+                "section_level": metadata.section_level if metadata else None,
+                "content_type": metadata.content_type if metadata else None,
+                "position": metadata.position if metadata else None,
+                "token_count": metadata.token_count if metadata else None,
+                "breadcrumbs": metadata.breadcrumbs if metadata else None,
             }
-            
+
             self.supabase.table("artifact_chunks").insert(chunk_data).execute()
+        # Atualiza o conteúdo original
+        self.supabase.table("artifacts").update({"original_content": new_content}).eq("id", str(artifact_id)).execute()
     
     async def find_all(self) -> list[Artifact]:
         """Busca todos os artefatos (sem chunks, apenas metadados)."""
@@ -151,7 +205,8 @@ class ArtifactsRepository:
                 title=row["title"],
                 source_type=source_type,
                 chunks=[],  # Não carrega chunks na listagem
-                source_url=row.get("source_url")
+                source_url=row.get("source_url"),
+                original_content=row.get("original_content")
             )
             artifacts.append(artifact)
         
@@ -172,11 +227,18 @@ class ArtifactsRepository:
     async def save_chunks(self, artifact_id: ArtifactId, chunks: list) -> None:
         """Salva chunks de um artefato."""
         for chunk in chunks:
+            metadata = chunk.metadata
             chunk_data = {
                 "id": str(chunk.id),
                 "artifact_id": str(artifact_id),
                 "content": chunk.content,
-                "embedding": chunk.embedding.vector
+                "embedding": chunk.embedding.vector,
+                "section_title": metadata.section_title if metadata else None,
+                "section_level": metadata.section_level if metadata else None,
+                "content_type": metadata.content_type if metadata else None,
+                "position": metadata.position if metadata else None,
+                "token_count": metadata.token_count if metadata else None,
+                "breadcrumbs": metadata.breadcrumbs if metadata else None,
             }
             self.supabase.table("artifact_chunks").insert(chunk_data).execute()
     

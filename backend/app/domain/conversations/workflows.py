@@ -96,9 +96,14 @@ async def continue_conversation(
     for chunk in cited_chunks:
         # Aqui precisaríamos buscar o título do artefato, mas por enquanto usamos o chunk_id
         cited_source = CitedSource(
+            chunk_id=chunk.id,
             artifact_id=chunk.artifact_id,
             title="",  # Será preenchido na camada de infraestrutura
-            chunk_content_preview=chunk.content[:200]  # Primeiros 200 caracteres
+            chunk_content_preview=chunk.content[:200],  # Primeiros 200 caracteres
+            section_title=chunk.metadata.section_title if chunk.metadata else None,
+            section_level=chunk.metadata.section_level if chunk.metadata else None,
+            content_type=chunk.metadata.content_type if chunk.metadata else None,
+            breadcrumbs=chunk.metadata.breadcrumbs if chunk.metadata else [],
         )
         cited_sources.append(cited_source)
     

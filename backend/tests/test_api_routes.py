@@ -8,7 +8,7 @@ import os
 
 # Mock das variáveis de ambiente antes de importar app
 # (já configurado no conftest.py, mas garantindo aqui também)
-os.environ.setdefault('SUPABASE_URL', 'http://test.supabase.co')
+os.environ.setdefault('SUPABASE_URL', 'https://test.supabase.co')
 os.environ.setdefault('SUPABASE_KEY', 'test-key-1234567890123456789012345678901234567890')
 os.environ.setdefault('SUPABASE_SERVICE_ROLE_KEY', 'test-service-key-1234567890123456789012345678901234567890')
 os.environ.setdefault('GEMINI_API_KEY', 'test-gemini-key')
@@ -19,7 +19,7 @@ with patch('supabase.create_client') as mock_create:
     mock_create.return_value = mock_client
     from app.main import app
 from app.domain.shared_kernel import ArtifactId, ConversationId, MessageId, FeedbackId
-from app.domain.artifacts.types import Artifact, ArtifactChunk, ArtifactSourceType
+from app.domain.artifacts.types import Artifact, ArtifactChunk, ArtifactSourceType, ChunkMetadata
 from app.domain.conversations.types import Conversation, Message, Author
 from app.domain.feedbacks.types import PendingFeedback, FeedbackStatus
 from app.domain.learnings.types import Learning
@@ -156,20 +156,30 @@ class TestArtifactsRoutes:
             id=uuid.uuid4(),
             artifact_id=artifact_id,
             content="Conteúdo do chunk",
-            embedding=Mock()
+            embedding=Mock(),
+            metadata=ChunkMetadata(
+                section_title="Seção",
+                section_level=1,
+                content_type="paragraph",
+                position=0,
+                token_count=20,
+                breadcrumbs=["Seção"],
+            ),
         )
         artifact = Artifact(
             id=artifact_id,
             title="Artefato",
             source_type=ArtifactSourceType.TEXT,
             chunks=[chunk],
-            source_url=None
+            source_url=None,
+            original_content="Texto original"
         )
         
         mock_repo.find_by_id = AsyncMock(return_value=artifact)
         
         response = client.get(f"/api/v1/artifacts/{artifact_id}/content")
-        assert response.status_code in [200, 404]
+        assert response.status_code == 200
+        assert response.json() == {"source_type": "TEXT", "content": "Texto original"}
     
     @pytest.mark.asyncio
     @patch('app.api.routes.artifacts.artifacts_repo')
@@ -458,7 +468,7 @@ class TestTopicsRoutes:
         mock_create_client.return_value = mock_supabase
         
         # Mock das variáveis de ambiente
-        with patch('app.api.routes.topics.SUPABASE_URL', 'http://test.supabase.co'), \
+        with patch('app.api.routes.topics.SUPABASE_URL', 'https://test.supabase.co'), \
              patch('app.api.routes.topics.SUPABASE_KEY', 'test-key'):
             response = client.get("/api/v1/topics")
             # Pode retornar 200 ou 500 se não tiver configuração
