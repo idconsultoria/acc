@@ -2,13 +2,26 @@
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum, auto
-from app.domain.shared_kernel import ConversationId, MessageId, ArtifactId, ChunkId
+from app.domain.shared_kernel import (
+    ConversationId,
+    MessageId,
+    ArtifactId,
+    ChunkId,
+    LearningId,
+    ContextSlotId,
+)
 
 
 class Author(Enum):
     """Autor da mensagem."""
     USER = auto()
     AGENT = auto()
+
+
+class ContextItemType(Enum):
+    """Tipo de item armazenado na janela de contexto."""
+    CHUNK = auto()
+    LEARNING = auto()
 
 
 # Value Object que representa uma fonte citada
@@ -37,6 +50,18 @@ class Message:
     created_at: datetime
 
 
+@dataclass(frozen=True)
+class ContextSlot:
+    """Slot que compõe a janela de contexto persistida por conversa."""
+    id: ContextSlotId
+    conversation_id: ConversationId
+    item_type: ContextItemType
+    item_id: ChunkId | LearningId
+    is_pinned: bool
+    manual_weight: float | None
+    created_at: datetime
+
+
 # Aggregate Root deste domínio
 @dataclass(frozen=True)
 class Conversation:
@@ -44,4 +69,6 @@ class Conversation:
     id: ConversationId
     messages: list[Message]
     created_at: datetime
+    context_token_budget: int | None = None
+    context_slots: list[ContextSlot] = field(default_factory=list)
 

@@ -12,6 +12,7 @@ ChunkId = NewType("ChunkId", uuid.UUID)
 FeedbackId = NewType("FeedbackId", uuid.UUID)
 LearningId = NewType("LearningId", uuid.UUID)
 TopicId = NewType("TopicId", uuid.UUID)
+ContextSlotId = NewType("ContextSlotId", uuid.UUID)
 
 
 # Value Object para representar o texto de um embedding
